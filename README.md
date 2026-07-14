@@ -3,11 +3,26 @@
 OrderOrchestration-as-Code: declarative, version-controlled description of
 **how incoming orders are split into fulfillable units, and which
 downstream workflow each resulting unit triggers**, as YAML, validated
-via CI. Sibling project to
-[`Warehouse-as-Code`](../Warehouse-as-Code) (physical structure +
-movement rules) and `MasterData-as-Code` (items, UOM, packaging) - this
-repo covers the layer between the two: the *decision logic* for how an
-order becomes one or more concrete fulfillment tasks.
+via CI. Covers the layer between warehouse structure and item master
+data: the *decision logic* for how an order becomes one or more concrete
+fulfillment tasks.
+
+## Related Projects
+
+Part of a family of sibling "-as-Code" repos sharing the same declarative
+pattern (JSON Schema validation, `structure/` vs. `strategies/`,
+`elements/` catalogs):
+
+| Repo | Covers |
+|---|---|
+| [`Warehouse-as-Code`](https://github.com/rhinos07/Warehouse-as-Code) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
+| **OrderOrchestration-as-Code** (this repo) | How incoming orders are split, and which downstream workflow each split triggers |
+| [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
+
+This repo's `workflow_trigger` values that hand off to the warehouse are
+meant to reference `Warehouse-as-Code`'s `elements/process_types.yaml`
+vocabulary (see "Shared Vocabulary" below), and its split rules reference
+item ids owned by `MasterData-as-Code`.
 
 ## Core Principle
 
