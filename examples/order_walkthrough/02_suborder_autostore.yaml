@@ -1,0 +1,21 @@
+# ITEM_SMALL_GADGET is stored in the AutoStore cell. SPLIT_TO_AUTOSTORE
+# fires, creating this sub-order with target_override -> the cell's own
+# EXIT work_center (it can't reach DOOR_02 on its own). The position is
+# NEW (line_id L1-A), referencing the original via source_line_id - L1
+# on the original order (01_original_order.yaml) is never mutated.
+
+order:
+  order_id: "ORD-1001-A"
+  order_type: "b2c_standard"
+  parent_order_id: "ORD-1001"
+  source_split_rule: "SPLIT_TO_AUTOSTORE"
+  target: { type: "work_center", id: "EXIT" }
+  status: "completed"
+
+positions:
+  - line_id: "L1-A"
+    source_line_id: "L1"
+    material_request:
+      item_id: "ITEM_SMALL_GADGET"
+      quantity: 2
+      uom: "each"
