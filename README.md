@@ -88,8 +88,13 @@ order-orchestration-definitions/
 │                           ├── split_rules.yaml       # When/how an order splits
 │                           ├── workflow_triggers.yaml # Which workflow each split starts
 │                           └── completion_rules.yaml  # What happens when sub-order(s) finish
+├── examples/
+│   └── order_walkthrough/    # Illustrative order instances (NOT structural config,
+│                             #   NOT real runtime data) - see its own README
 ├── tools/
-│   └── validate.py          # Validation script (schema + cross-file consistency checks)
+│   ├── validate.py           # Validation script (schema + cross-file consistency checks)
+│   └── validate_examples.py  # Validates examples/ instance files against
+│                              #   order-header.schema.json / order-position.schema.json
 ├── docs/
 │   └── entity-glossary.md
 └── .github/workflows/validate.yaml   # CI pipeline (dynamic per-customer matrix)
@@ -105,6 +110,10 @@ pip install -r requirements.txt
 # Validates a company.yaml, channel.yaml, or order_type.yaml - cascades
 # down to every channel/order_type it references
 python tools/validate.py customers/example_customer/company.yaml
+
+# Validates the illustrative order-instance examples (header + positions)
+# against order-header.schema.json / order-position.schema.json
+python tools/validate_examples.py examples/order_walkthrough
 ```
 
 ## Examples
@@ -119,6 +128,11 @@ python tools/validate.py customers/example_customer/company.yaml
   `customers/autostore_customer`), and a `completion_rule` spawns a
   consolidation order once both sub-orders finish. Walked through in
   `docs/entity-glossary.md` under "Splitting and Completion".
+- `examples/order_walkthrough/` - concrete, illustrative order instances
+  (header + positions with real-looking item ids/quantities) for the
+  scenario above - not structural config, not real runtime data. See its
+  own README for the flow diagram; building it surfaced a real gap in
+  `completion_rule` (see "Next Steps" below).
 
 ## Core Concepts (Quick Reference)
 
@@ -174,6 +188,17 @@ causes real drift or pain.
 
 ## Next Steps for This Repo
 
+- [ ] **Fix the completion_rule re-fire / parent-completion gap** (found
+      while building `examples/order_walkthrough/`): once a spawned
+      consolidation order also reaches the watched status, it's
+      indistinguishable from the original split children, so (a) nothing
+      marks the top-level order itself as done, and (b) the same
+      `completion_rule` could fire again and spawn a second consolidation
+      order. Likely fix: add a `when.source` filter to
+      `completion-rule.schema.json` (e.g. restrict to specific
+      `split_rule` ids, or exclude children created by a
+      `completion_rule`) - not yet designed, deliberately left open. See
+      `examples/order_walkthrough/README.md` for the concrete case.
 - [ ] Build out `MasterData-as-Code` far enough that `material_request.item_id`
       can be cross-checked against real item ids (not yet validated -
       `tools/validate.py` has no referential-integrity check against
@@ -185,7 +210,7 @@ causes real drift or pain.
 - [ ] Consider a `sla_class` catalog (delivery-promise/priority
       classification) if/when split rules need to reference urgency
 
-### Open Validation Gap
+### Open Validation Gaps
 
 `tools/validate.py` checks structural cross-references *within* this
 repo (e.g. `split_rule.condition` → `elements/split_reasons.yaml`,
@@ -197,6 +222,15 @@ an actual `Warehouse-as-Code` door/work_center/activity_area id,
 `elements/load_unit_types.yaml`) - same category of gap
 `Warehouse-as-Code` itself started with before cross-file checks were
 added there.
+
+`tools/validate_examples.py` only checks each order instance and its
+positions against the canonical schemas in isolation. It does **not**
+check instance-level consistency across a set of example files - e.g.
+that `source_line_id`/`source_order_id`/`parent_order_id` references
+actually resolve to another file in the same walkthrough, or that a
+`split_rule`'s `target_override` was applied correctly to the resulting
+sub-order. `examples/order_walkthrough/` is hand-verified against
+`docs/entity-glossary.md`'s narrative for now.
 
 ### Out of Scope (By Design)
 

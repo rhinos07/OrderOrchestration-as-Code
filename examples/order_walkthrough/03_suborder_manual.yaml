@@ -1,0 +1,20 @@
+# ITEM_BULKY_LAMP is stored in the manual warehouse. SPLIT_TO_MANUAL_WAREHOUSE
+# fires - no target_override, so this sub-order inherits the original
+# order's target (DOOR_02) unchanged, since the manual warehouse can
+# reach the door directly.
+
+order:
+  order_id: "ORD-1001-B"
+  order_type: "b2c_standard"
+  parent_order_id: "ORD-1001"
+  source_split_rule: "SPLIT_TO_MANUAL_WAREHOUSE"
+  target: { type: "door", id: "DOOR_02" }
+  status: "completed"
+
+positions:
+  - line_id: "L2-B"
+    source_line_id: "L2"
+    material_request:
+      item_id: "ITEM_BULKY_LAMP"
+      quantity: 1
+      uom: "each"

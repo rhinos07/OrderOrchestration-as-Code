@@ -33,6 +33,12 @@ cascades validation downward automatically.
 
 ## Splitting and Completion (Key Architectural Principle)
 
+See [`examples/order_walkthrough/`](../examples/order_walkthrough/) for
+this scenario worked out as concrete, illustrative order instances
+(header + positions) - including a real gap it surfaced in
+`completion_rule` (see that folder's README and the main README's "Next
+Steps").
+
 A sub-order reaching its own target does **not** automatically complete
 its parent. Example: an order is split between an AutoStore cell and a
 manual warehouse area within the same facility (`split_by:

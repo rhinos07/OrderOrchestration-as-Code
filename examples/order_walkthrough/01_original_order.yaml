@@ -1,0 +1,25 @@
+# Illustrative order instance - NOT structural config, NOT real runtime
+# data. Shows what an actual b2c_standard order (customers/example_customer)
+# looks like in the header/position shape, before any split has happened.
+# Validated against schemas/order-header.schema.json (order) and
+# schemas/order-position.schema.json (each entry in positions) by
+# tools/validate_examples.py.
+
+order:
+  order_id: "ORD-1001"
+  order_type: "b2c_standard"
+  target: { type: "door", id: "DOOR_02" }
+  status: "created"
+
+positions:
+  - line_id: "L1"
+    material_request:
+      item_id: "ITEM_SMALL_GADGET"
+      quantity: 2
+      uom: "each"
+
+  - line_id: "L2"
+    material_request:
+      item_id: "ITEM_BULKY_LAMP"
+      quantity: 1
+      uom: "each"
