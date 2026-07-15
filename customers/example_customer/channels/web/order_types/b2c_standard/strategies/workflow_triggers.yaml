@@ -1,0 +1,13 @@
+# Which downstream workflow starts for each split outcome. This file
+# validates against schemas/workflow-trigger.schema.json (per entry)
+
+workflow_triggers:
+  - id: "TRIGGER_AUTOSTORE_PICK"
+    split_rule: "SPLIT_TO_AUTOSTORE"
+    # Same process_type vocabulary as Warehouse-as-Code's
+    # elements/process_types.yaml - see README "Shared Vocabulary".
+    trigger: "pick_task"
+
+  - id: "TRIGGER_MANUAL_PICK"
+    split_rule: "SPLIT_TO_MANUAL_WAREHOUSE"
+    trigger: "pick_task"

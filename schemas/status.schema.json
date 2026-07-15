@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/status.schema.json",
+  "title": "Order Status State Machine",
+  "description": "Defines the statuses an order or sub-order of this order_type can be in, and the allowed transitions between them. Every order/sub-order has its own, independent position in this state machine - a sub-order reaching a terminal status does not by itself change its parent's status (see completion-rule.schema.json).",
+  "type": "object",
+  "properties": {
+    "statuses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string" },
+          "terminal": {
+            "type": "boolean",
+            "description": "True if no further transitions are expected from this status (e.g. 'shipped', 'cancelled'). completion_rule.when.status typically references a terminal status."
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to"],
+        "properties": {
+          "from": { "type": "string", "description": "References a statuses[].id." },
+          "to": { "type": "string", "description": "References a statuses[].id." },
+          "trigger": {
+            "type": "string",
+            "description": "Optional description of what causes this transition."
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

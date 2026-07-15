@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json",
+  "title": "Order Header",
+  "description": "Header-level structure shared by every order and sub-order: identity, lineage, target, and status. An order's positions (line items) are defined separately - see order-position.schema.json. This schema describes the SHAPE order/sub-order instances must have; actual live instances are runtime data (in the WMS/OMS), not tracked in this repo - see structure/fields.yaml for how one order_type restricts/extends this shape.",
+  "type": "object",
+  "required": ["order_id", "order_type", "target"],
+  "properties": {
+    "order_id": { "type": "string" },
+    "order_type": {
+      "type": "string",
+      "description": "References the order_type this header belongs to."
+    },
+    "parent_order_id": {
+      "type": "string",
+      "description": "Empty/absent for a top-level order. Set for a sub-order created by a split_rule, or spawned by a completion_rule's spawn_order action."
+    },
+    "source_split_rule": {
+      "type": "string",
+      "description": "References the split_rule.id that created this sub-order, if any."
+    },
+    "target": { "$ref": "#/definitions/target" },
+    "status": {
+      "type": "string",
+      "description": "References a statuses[].id from this order_type's structure/status.yaml."
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "target": {
+      "type": "object",
+      "description": "The destination this order/sub-order must reach. References a Warehouse-as-Code entity - decided once at order/sub-order creation time (by the runtime OMS/WMS), not re-resolved dynamically here. A sub-order's target may differ from its parent's (e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door) - see docs/entity-glossary.md.",
+      "type": "object",
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["door", "work_center", "activity_area"],
+          "description": "The Warehouse-as-Code entity kind this target references."
+        },
+        "id": {
+          "type": "string",
+          "description": "The Warehouse-as-Code id of the door/work_center/activity_area."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

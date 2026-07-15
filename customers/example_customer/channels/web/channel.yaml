@@ -1,0 +1,9 @@
+# A sales channel. Changes rarely. This file validates against
+# schemas/channel.schema.json
+
+channel:
+  id: "web"
+  name: "Web Shop"
+
+  order_types:
+    - "order_types/b2c_standard/order_type.yaml"

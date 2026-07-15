@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/fields.schema.json",
+  "title": "Order Type Field Configuration",
+  "description": "Restricts which order-header target types and order-position request kinds this order_type allows, on top of the canonical shapes in order-header.schema.json / order-position.schema.json.",
+  "type": "object",
+  "required": ["fields"],
+  "properties": {
+    "fields": {
+      "type": "object",
+      "properties": {
+        "allowed_position_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["load_unit_request", "material_request", "suborder_output_request"]
+          },
+          "minItems": 1
+        },
+        "allowed_target_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["door", "work_center", "activity_area"]
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

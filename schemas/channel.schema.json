@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/channel.schema.json",
+  "title": "Sales Channel",
+  "description": "A sales channel (web, marketplace, B2B portal, ...) belonging to a company. Groups one or more order types.",
+  "type": "object",
+  "required": ["channel"],
+  "properties": {
+    "channel": {
+      "type": "object",
+      "required": ["id", "name", "order_types"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "order_types": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relative paths to order_type.yaml files."
+        }
+      }
+    }
+  }
+}

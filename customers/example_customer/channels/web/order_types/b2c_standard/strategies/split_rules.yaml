@@ -1,0 +1,26 @@
+# When/how an order of this type is decomposed into sub-orders. This file
+# validates against schemas/split-rule.schema.json (per entry)
+
+split_rules:
+  # This order's positions are split across two storage technologies
+  # within the same facility - some items come from the AutoStore cell,
+  # the rest from the manual warehouse.
+
+  - id: "SPLIT_TO_AUTOSTORE"
+    condition: "storage_technology_split"
+    split_by: "storage_technology"
+    # The AutoStore cell can't reach the outbound door on its own - see
+    # Warehouse-as-Code's customers/autostore_customer, whose whole
+    # building has no door/lane infrastructure, only ENTRY/EXIT
+    # work_centers as its system boundary. This sub-order's target is
+    # that cell's own EXIT, not the parent order's actual door.
+    target_override:
+      type: "work_center"
+      id: "EXIT"
+
+  - id: "SPLIT_TO_MANUAL_WAREHOUSE"
+    condition: "storage_technology_split"
+    split_by: "storage_technology"
+    # No target_override: the manual warehouse can reach the outbound
+    # door directly, so this sub-order inherits the parent's target
+    # unchanged.

@@ -1,0 +1,69 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/completion-rule.schema.json",
+  "title": "Completion Rule",
+  "description": "Defines what happens when sub-order(s) of an order reach a given status. A sub-order reaching its own target does NOT automatically complete its parent - e.g. an AutoStore sub-order may only be able to reach its cell's own EXIT point, never the parent order's actual outbound door, so reaching the parent's target requires a further step. This rule expresses that step: either the parent's own status changes, or a new order is spawned (typically a consolidation order whose positions are suborder_output_request entries referencing the completed sub-orders, targeting the original parent's target).",
+  "type": "object",
+  "required": ["id", "when", "action"],
+  "properties": {
+    "id": { "type": "string" },
+    "when": {
+      "type": "object",
+      "required": ["status", "quantifier"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "References a statuses[].id (typically terminal) that sub-orders are watched for."
+        },
+        "quantifier": {
+          "type": "string",
+          "enum": ["all_children", "any_child", "n_of_m"]
+        },
+        "n": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Required when quantifier is 'n_of_m'."
+        }
+      },
+      "additionalProperties": false
+    },
+    "action": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["update_parent_status", "spawn_order"]
+        },
+        "new_status": {
+          "type": "string",
+          "description": "Required when type is 'update_parent_status' - references a statuses[].id."
+        },
+        "spawn_order_type": {
+          "type": "string",
+          "description": "Required when type is 'spawn_order' - which order_type to instantiate (usually the same one the parent belongs to)."
+        },
+        "spawn_target": {
+          "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
+          "description": "Required when type is 'spawn_order' - typically the original parent's own target."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "properties": { "type": { "const": "update_parent_status" } } } } },
+      "then": { "properties": { "action": { "required": ["type", "new_status"] } } }
+    },
+    {
+      "if": { "properties": { "action": { "properties": { "type": { "const": "spawn_order" } } } } },
+      "then": { "properties": { "action": { "required": ["type", "spawn_order_type", "spawn_target"] } } }
+    },
+    {
+      "if": { "properties": { "when": { "properties": { "quantifier": { "const": "n_of_m" } } } } },
+      "then": { "properties": { "when": { "required": ["status", "quantifier", "n"] } } }
+    }
+  ]
+}

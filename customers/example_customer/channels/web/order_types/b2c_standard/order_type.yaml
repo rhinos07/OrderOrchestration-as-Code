@@ -1,0 +1,14 @@
+# Order-type-level file. Short and stable - references everything else.
+# Part of a channel (see ../../channel.yaml). This file validates against
+# schemas/order-type.schema.json
+
+order_type:
+  id: "b2c_standard"
+  name: "B2C Standard Order"
+
+  imports:
+    - "structure/fields.yaml"
+    - "structure/status.yaml"
+    - "strategies/split_rules.yaml"
+    - "strategies/workflow_triggers.yaml"
+    - "strategies/completion_rules.yaml"

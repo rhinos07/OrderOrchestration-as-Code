@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/order-position.schema.json",
+  "title": "Order Position (Line Item)",
+  "description": "A single line item on an order header. Requests exactly one of: a specific load unit, material by item id + quantity, or the output of an already-completed sub-order (used by consolidation orders spawned by a completion_rule). Splitting never mutates the original position - a split creates NEW positions on the sub-order(s) that reference the original via source_line_id, so the original order always shows what was actually ordered.",
+  "type": "object",
+  "required": ["line_id"],
+  "properties": {
+    "line_id": { "type": "string" },
+    "source_line_id": {
+      "type": "string",
+      "description": "References the line_id this position was split from, on the (grand-)parent order. Absent on a top-level order's own positions."
+    },
+    "load_unit_request": {
+      "type": "object",
+      "description": "Request for a specific load unit rather than material by quantity (e.g. 'bring this exact pallet/bin').",
+      "required": ["load_unit_type", "quantity"],
+      "properties": {
+        "load_unit_type": {
+          "type": "string",
+          "description": "References an id in Warehouse-as-Code's elements/load_unit_types.yaml (candidate to move to MasterData-as-Code, see that repo's Shared Vocabulary section)."
+        },
+        "quantity": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "material_request": {
+      "type": "object",
+      "description": "Request for material by item and quantity, independent of which load unit(s) it ends up coming from.",
+      "required": ["item_id", "quantity", "uom"],
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "description": "References an id in MasterData-as-Code."
+        },
+        "quantity": { "type": "number", "minimum": 0 },
+        "uom": { "type": "string" },
+        "properties": {
+          "type": "object",
+          "additionalProperties": true,
+          "description": "Optional constraints on the material, e.g. batch/lot, minimum shelf life, hazmat class."
+        }
+      },
+      "additionalProperties": false
+    },
+    "suborder_output_request": {
+      "type": "object",
+      "description": "Consolidation position: 'take whatever this completed sub-order produced', rather than requesting fresh material. Used on orders spawned by a completion_rule's spawn_order action.",
+      "required": ["source_order_id"],
+      "properties": {
+        "source_order_id": {
+          "type": "string",
+          "description": "References the order_id of a (typically completed) sub-order."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "oneOf": [
+    { "required": ["load_unit_request"] },
+    { "required": ["material_request"] },
+    { "required": ["suborder_output_request"] }
+  ]
+}
