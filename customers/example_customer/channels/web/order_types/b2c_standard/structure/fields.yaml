@@ -1,0 +1,12 @@
+# Which order-header target types and order-position request kinds this
+# order type allows. This file validates against schemas/fields.schema.json
+
+fields:
+  allowed_position_kinds:
+    - "material_request"
+    - "load_unit_request"
+    - "suborder_output_request"   # needed for consolidation orders spawned by completion_rules
+  allowed_target_types:
+    - "door"
+    - "work_center"
+    - "activity_area"

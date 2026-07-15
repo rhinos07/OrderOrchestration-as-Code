@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/workflow-trigger.schema.json",
+  "title": "Workflow Trigger",
+  "description": "Maps a split_rule outcome to the downstream process/workflow that should be started for the resulting sub-order.",
+  "type": "object",
+  "required": ["id", "trigger"],
+  "properties": {
+    "id": { "type": "string" },
+    "split_rule": {
+      "type": "string",
+      "description": "References the split_rule.id this trigger fires for."
+    },
+    "trigger": {
+      "type": "string",
+      "description": "Where this hands off to a warehouse, reference the same id Warehouse-as-Code's elements/process_types.yaml uses (e.g. 'pick_task', 'putaway_task', 'cross_dock_task') rather than inventing a parallel vocabulary - see README 'Shared Vocabulary'."
+    }
+  },
+  "additionalProperties": false
+}

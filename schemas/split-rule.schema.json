@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/split-rule.schema.json",
+  "title": "Split Rule",
+  "description": "Defines when/how an order is decomposed into sub-orders - independent of which workflow the result triggers (see workflow-trigger.schema.json) and of what happens once sub-orders complete (see completion-rule.schema.json).",
+  "type": "object",
+  "required": ["id", "condition"],
+  "properties": {
+    "id": { "type": "string" },
+    "condition": {
+      "type": "string",
+      "description": "References an id in elements/split_reasons.yaml, e.g. 'storage_technology_split', 'multi_location_availability'."
+    },
+    "split_by": {
+      "type": "string",
+      "enum": ["storage_technology", "fulfillment_location", "carrier", "promise_date", "item_category"],
+      "description": "The dimension sub-orders are split along."
+    },
+    "target_override": {
+      "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
+      "description": "The target a sub-order created by this rule gets, if different from the parent's target - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door. Omit if the sub-order should inherit the parent's target unchanged."
+    }
+  },
+  "additionalProperties": false
+}

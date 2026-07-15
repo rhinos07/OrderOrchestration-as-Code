@@ -1,0 +1,22 @@
+# What happens when sub-order(s) reach a given status. This file
+# validates against schemas/completion-rule.schema.json (per entry)
+
+completion_rules:
+  # Neither sub-order alone satisfies the original order - the AutoStore
+  # sub-order only ever reaches its cell's own EXIT, never the real
+  # outbound door. Once BOTH sub-orders have reached their own target
+  # ("completed"), spawn a new consolidation order targeting the
+  # original door. Its positions would be suborder_output_request
+  # entries referencing SPLIT_TO_AUTOSTORE's and
+  # SPLIT_TO_MANUAL_WAREHOUSE's resulting sub-orders (assigned by the
+  # runtime when it spawns the order - not declared here).
+  - id: "CONSOLIDATE_AFTER_BOTH_SUBORDERS"
+    when:
+      status: "completed"
+      quantifier: "all_children"
+    action:
+      type: "spawn_order"
+      spawn_order_type: "b2c_standard"
+      spawn_target:
+        type: "door"
+        id: "DOOR_02"

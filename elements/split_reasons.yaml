@@ -1,0 +1,18 @@
+# Reusable catalog of reasons an order can be split into sub-orders.
+# Referenced by strategies/split_rules.yaml -> split_rule.condition.
+
+split_reasons:
+  - id: "storage_technology_split"
+    description: "Different parts of the order are fulfilled by different storage technologies/areas within the same facility (e.g. AutoStore vs. manual warehouse) and must be picked as separate sub-orders."
+
+  - id: "multi_location_availability"
+    description: "Ordered items are only jointly available across multiple facilities/DCs."
+
+  - id: "partial_availability"
+    description: "Some ordered quantity is available now, the rest only later (backorder split)."
+
+  - id: "carrier_limit"
+    description: "Order exceeds a single carrier's capacity/constraints and must ship in multiple shipments."
+
+  - id: "promise_date_grouping"
+    description: "Order lines have different promised delivery dates and are split to ship independently."
