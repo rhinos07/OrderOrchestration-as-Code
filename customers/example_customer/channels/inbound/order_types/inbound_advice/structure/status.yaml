@@ -1,0 +1,43 @@
+# Status state machine for this order type. Shared by the ASN itself and
+# by the putaway sub-orders split from it, same as b2c_standard shares one
+# machine across parent and sub-orders. This file validates against
+# schemas/status.schema.json
+
+statuses:
+  - id: "created"
+    # ASN: announced by the supplier, not yet physically arrived.
+    # Putaway sub-order: just split off, not yet started.
+  - id: "receipt_confirmed"
+    # ASN only: goods physically arrived at the door and quantities were
+    # counted - this is what triggers strategies/split_rules.yaml (see
+    # its comments on the missing "trigger status" concept).
+  - id: "in_putaway"
+    # Putaway sub-order only: actively being moved to its storage target.
+  - id: "completed"
+    terminal: true
+    # ASN: fully received AND fully put away (set via
+    # strategies/completion_rules.yaml's update_parent_status action).
+    # Putaway sub-order: reached its own storage target.
+  - id: "cancelled"
+    terminal: true
+
+transitions:
+  - from: "created"
+    to: "receipt_confirmed"
+  - from: "receipt_confirmed"
+    to: "in_putaway"
+  - from: "in_putaway"
+    to: "completed"
+  - from: "receipt_confirmed"
+    to: "completed"
+    # ASN-only shortcut: the ASN itself never enters "in_putaway" (only its
+    # putaway sub-orders do) - this is what completion_rules.yaml's
+    # update_parent_status jumps through once all sub-orders complete.
+    # Confirms in practice that one status machine shared across two
+    # conceptually different lifecycles produces states/transitions that
+    # only make sense for one of the two - see split_rules.yaml's comments
+    # and README "Next Steps".
+  - from: "created"
+    to: "cancelled"
+  - from: "receipt_confirmed"
+    to: "cancelled"

@@ -1,13 +1,23 @@
 # Multi-System Reallocation Walkthrough
 
 Illustrative order instances for `customers/example_customer`'s
-`b2c_standard` order type - **not** structural config, **not** real
+`b2c_multi_system` order type - **not** structural config, **not** real
 runtime data. Works through the "multi-system outbound fulfillment"
 scenario from [`docs/entity-glossary.md`](../../docs/entity-glossary.md)
 ("Order Target vs. Movement Target"): one order line has to be
 fulfilled across multiple sub-warehouse systems with different physical
 reach, and a system that can only move goods part-way to the order's
 real destination triggers a *reactive* re-split, not a planned one.
+
+`b2c_multi_system` was split out of `b2c_standard` (which now only holds
+the AutoStore/manual-warehouse scenario from `examples/order_walkthrough/`)
+once running both scenarios under one order_type showed
+`REALLOCATE_SHUTTLE_TARGET_GAP` firing on `b2c_standard`'s AutoStore
+sub-order too - its `target_override` also makes `target != order_target`,
+which is exactly what `target_gap` checks for. `completion_rule` has no
+way to scope itself to a specific `split_rule`'s children, so two
+unrelated scenarios sharing one order_type was the real problem, not the
+schema - see the main README's "Next Steps".
 
 Validate with:
 ```bash

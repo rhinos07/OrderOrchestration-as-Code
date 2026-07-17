@@ -191,15 +191,17 @@ def check_workflow_trigger_refs(path: Path, split_rules_data: dict | None) -> li
     return errors
 
 
-def check_completion_rule_refs(path: Path, status_data: dict | None) -> list[str]:
+def check_completion_rule_refs(path: Path, status_data: dict | None, split_rules_data: dict | None) -> list[str]:
     """Checks completion_rules.yaml's when.status / action.new_status ->
-    status.yaml statuses id, within the same order_type."""
+    status.yaml statuses id, and when.source_split_rules -> split_rules.yaml
+    ids, within the same order_type."""
     errors: list[str] = []
     data = load_yaml(path)
     if not data:
         return errors
 
     status_ids = {s.get("id") for s in (status_data or {}).get("statuses", []) if s.get("id")}
+    split_rule_ids = {r.get("id") for r in (split_rules_data or {}).get("split_rules", []) if r.get("id")}
     for rule in data.get("completion_rules", []):
         rule_id = rule.get("id", "?")
         when = rule.get("when") or {}
@@ -208,6 +210,12 @@ def check_completion_rule_refs(path: Path, status_data: dict | None) -> list[str
             errors.append(
                 f"{path}: completion_rule '{rule_id}': when.status '{watched}' not found in structure/status.yaml"
             )
+
+        for source_rule_id in when.get("source_split_rules", []):
+            if split_rule_ids and source_rule_id not in split_rule_ids:
+                errors.append(
+                    f"{path}: completion_rule '{rule_id}': when.source_split_rules '{source_rule_id}' not found in strategies/split_rules.yaml"
+                )
 
         action = rule.get("action") or {}
         new_status = action.get("new_status")
@@ -258,7 +266,7 @@ def validate_order_type_file(order_type_file: Path, element_ids: dict[str, set[s
         all_errors += check_workflow_trigger_refs(imports["workflow_triggers.yaml"], split_rules_data)
 
     if "completion_rules.yaml" in imports:
-        all_errors += check_completion_rule_refs(imports["completion_rules.yaml"], status_data)
+        all_errors += check_completion_rule_refs(imports["completion_rules.yaml"], status_data, split_rules_data)
 
     return all_errors
 

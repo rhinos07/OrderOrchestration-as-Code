@@ -7,3 +7,4 @@ company:
 
   channels:
     - "channels/web/channel.yaml"
+    - "channels/inbound/channel.yaml"

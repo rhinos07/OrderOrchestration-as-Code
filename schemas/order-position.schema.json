@@ -18,7 +18,7 @@
       "properties": {
         "load_unit_type": {
           "type": "string",
-          "description": "References an id in Warehouse-as-Code's elements/load_unit_types.yaml (candidate to move to MasterData-as-Code, see that repo's Shared Vocabulary section)."
+          "description": "References an id in Topology-as-Code's elements/load_unit_types.yaml (candidate to move to MasterData-as-Code, see that repo's Shared Vocabulary section)."
         },
         "quantity": { "type": "integer", "minimum": 1 }
       },

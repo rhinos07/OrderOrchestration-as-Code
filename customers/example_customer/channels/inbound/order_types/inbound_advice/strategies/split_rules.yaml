@@ -1,0 +1,50 @@
+# When/how an order of this type is decomposed into sub-orders. This file
+# validates against schemas/split-rule.schema.json (per entry)
+#
+# Two structural mismatches vs. the outbound (b2c_standard) case were
+# found here - see README "Next Steps":
+#
+# 1. Timing: still open. b2c_standard's splits are decidable at order
+#    intake, since availability-by-storage-technology is already known.
+#    Here, the split only makes sense once the ASN reaches
+#    "receipt_confirmed" (goods physically counted at the door) -
+#    split-rule.schema.json has no concept of "trigger this split when
+#    the order reaches status X", so that precondition is only expressed
+#    in this comment, not enforced.
+# 2. order_target direction: FIXED via split-rule.schema.json's
+#    order_target_override. For b2c_standard, order_target is the
+#    customer's fixed, known-upfront destination, and target_override
+#    only ever adjusts the reachable-hop 'target' - never order_target,
+#    by design. For putaway, it's inverted: the storage destination
+#    decided by THIS split IS the new final destination, so both rules
+#    below set order_target_override to the same activity_area as
+#    target_override - once a putaway sub-order completes, target ==
+#    order_target holds for real, same as any outbound leaf that reached
+#    its actual destination directly.
+
+split_rules:
+  - id: "SPLIT_TO_AUTOSTORE_PUTAWAY"
+    condition: "putaway_destination_split"
+    split_by: "storage_technology"
+    # Topology-as-Code's customers/autostore_customer/.../hall_1's own
+    # putaway activity_area - both the reachable hop AND the genuine
+    # final destination for this sub-order.
+    target_override:
+      type: "activity_area"
+      id: "PUTAWAY_ZONE_GRID"
+    order_target_override:
+      type: "activity_area"
+      id: "PUTAWAY_ZONE_GRID"
+
+  - id: "SPLIT_TO_MANUAL_PUTAWAY"
+    condition: "putaway_destination_split"
+    split_by: "storage_technology"
+    # Topology-as-Code's customers/example_customer/.../hall_3's own
+    # putaway activity_area - both the reachable hop AND the genuine
+    # final destination for this sub-order.
+    target_override:
+      type: "activity_area"
+      id: "PUTAWAY_ZONE_A"
+    order_target_override:
+      type: "activity_area"
+      id: "PUTAWAY_ZONE_A"

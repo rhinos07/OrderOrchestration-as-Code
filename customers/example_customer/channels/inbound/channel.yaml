@@ -1,0 +1,12 @@
+# Not a sales channel in the literal sense - reuses the same "channel"
+# grouping level (schemas/channel.schema.json is titled "Sales Channel")
+# because inbound advices/putaway need the same Company -> Channel ->
+# Order Type identity layer as outbound orders. See README "Next Steps"
+# for the naming mismatch this causes.
+
+channel:
+  id: "inbound"
+  name: "Inbound / Goods Receipt"
+
+  order_types:
+    - "order_types/inbound_advice/order_type.yaml"

@@ -27,6 +27,12 @@
         "target_gap": {
           "type": "boolean",
           "description": "If true, this rule only matches a watched child whose 'target' (movement target) differs from its 'order_target' at the moment it reaches 'status' - i.e. it confirmed its quantity but only got as far as an intermediate point (e.g. a consolidation area), not the order's real destination. Distinguishes 'confirmed but not actually there yet' from true completion. Pairs naturally with quantifier 'any_child' and action.type 'reallocate_remainder', since each gapped child is handled as soon as it is detected, not batched with its siblings. Omit (or false) for rules that only care about status, regardless of target."
+        },
+        "source_split_rules": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "If present, this rule only considers children whose 'source_split_rule' is one of these split_rule ids - siblings created by a different split_rule (or not created by a split at all) are ignored, even if they'd otherwise match 'status'/'target_gap'. Omit to consider every child regardless of which split_rule created it (the original, still-default behavior). Exists because two completion_rules on the same order_type can otherwise cross-fire on each other's children whenever their 'when' conditions happen to overlap - e.g. any target_override necessarily makes 'target != order_target', so a target_gap rule meant for one split scenario can spuriously match a sub-order from a different, unrelated split_rule that also happens to use target_override. Discovered by WMS-POC actually running this config, not by design - see OrderOrchestration-as-Code README 'Next Steps'."
         }
       },
       "additionalProperties": false

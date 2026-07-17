@@ -1,0 +1,17 @@
+# What happens when sub-order(s) reach a given status. This file
+# validates against schemas/completion-rule.schema.json (per entry)
+
+completion_rules:
+  # Once every putaway sub-order has reached its own storage target
+  # ('completed'), the ASN itself is fully received and put away - update
+  # its own status rather than spawning anything new (there's no
+  # consolidation step on the inbound side, unlike b2c_standard's
+  # CONSOLIDATE_AFTER_BOTH_SUBORDERS).
+  - id: "MARK_RECEIVED_AFTER_ALL_PUTAWAY"
+    when:
+      status: "completed"
+      quantifier: "all_children"
+      source_split_rules: ["SPLIT_TO_AUTOSTORE_PUTAWAY", "SPLIT_TO_MANUAL_PUTAWAY"]
+    action:
+      type: "update_parent_status"
+      new_status: "completed"

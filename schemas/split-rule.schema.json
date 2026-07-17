@@ -18,7 +18,11 @@
     },
     "target_override": {
       "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
-      "description": "Overrides the sub-order's MOVEMENT TARGET ('target') only - never its 'order_target', which is always inherited unchanged from the parent regardless of this override. Use when the executing system for this sub-order can't reach the parent's target directly - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door. Omit if the sub-order's executing system can reach the parent's target directly, so 'target' inherits unchanged too."
+      "description": "Overrides the sub-order's MOVEMENT TARGET ('target'). By default this never touches 'order_target' (see order_target_override below) - use when the executing system for this sub-order can't reach the parent's target directly - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door. Omit if the sub-order's executing system can reach the parent's target directly, so 'target' inherits unchanged too."
+    },
+    "order_target_override": {
+      "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
+      "description": "Overrides the sub-order's ORDER TARGET ('order_target') too, not just 'target' - the exception to order_target normally being immutable and inherited unchanged from the parent. Use only when this split_rule's destination genuinely becomes the new final business destination for the resulting sub-order, e.g. inbound putaway: the storage location a split decides is not an intermediate hop the way an outbound sub-order's target_override is, it IS where the goods are meant to end up, so target == order_target should hold once that sub-order completes. Do not use this for outbound-style splits where order_target is the customer's fixed, known-upfront destination - target_override alone is correct there. Omit for that default behavior."
     }
   },
   "additionalProperties": false

@@ -11,7 +11,7 @@
 
 order:
   order_id: "ORD-2001-C"
-  order_type: "b2c_standard"
+  order_type: "b2c_multi_system"
   parent_order_id: "ORD-2001"
   target: { type: "door", id: "GATE_3" }
   order_target: { type: "door", id: "GATE_3" }

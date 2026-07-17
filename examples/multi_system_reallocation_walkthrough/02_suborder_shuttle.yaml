@@ -10,7 +10,7 @@
 
 order:
   order_id: "ORD-2001-A"
-  order_type: "b2c_standard"
+  order_type: "b2c_multi_system"
   parent_order_id: "ORD-2001"
   source_split_rule: "SPLIT_TO_SHUTTLE_ZONE"
   target: { type: "activity_area", id: "CONSOLIDATION_1" }

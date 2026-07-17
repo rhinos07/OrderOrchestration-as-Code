@@ -1,0 +1,25 @@
+# What happens when sub-order(s) reach a given status. This file
+# validates against schemas/completion-rule.schema.json (per entry)
+
+completion_rules:
+  # Reactive re-split for the multi-system scenario (see
+  # examples/multi_system_reallocation_walkthrough/): a shuttle-served
+  # sub-order confirms its quantity but only reaches an intermediate
+  # consolidation area, not the order's real order_target. Fires as soon
+  # as THAT ONE child is detected (any_child + target_gap), not batched
+  # with siblings - the new sub-order inherits order_target unchanged;
+  # which system/route actually moves it the rest of the way is a runtime
+  # allocation decision, not declared here.
+  - id: "REALLOCATE_SHUTTLE_TARGET_GAP"
+    when:
+      status: "completed"
+      quantifier: "any_child"
+      target_gap: true
+      # Only the shuttle sub-order can ever legitimately have a
+      # target_gap here (the manual pick zone always inherits target ==
+      # order_target) - stated explicitly rather than relied upon, per
+      # schemas/completion-rule.schema.json's source_split_rules.
+      source_split_rules: ["SPLIT_TO_SHUTTLE_ZONE"]
+    action:
+      type: "reallocate_remainder"
+      reallocate_order_type: "b2c_multi_system"

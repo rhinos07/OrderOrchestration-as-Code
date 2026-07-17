@@ -8,7 +8,7 @@
 
 order:
   order_id: "ORD-2001"
-  order_type: "b2c_standard"
+  order_type: "b2c_multi_system"
   target: { type: "door", id: "GATE_3" }
   order_target: { type: "door", id: "GATE_3" }
   status: "created"

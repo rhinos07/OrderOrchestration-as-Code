@@ -36,18 +36,18 @@
   "definitions": {
     "target": {
       "type": "object",
-      "description": "A destination reference - a Warehouse-as-Code entity (door/work_center/activity_area). Used both as 'target' (this order/sub-order's own next reachable hop) and 'order_target' (the immutable final business destination) - see the two properties above for how they differ.",
+      "description": "A destination reference - a Topology-as-Code entity (door/work_center/activity_area). Used both as 'target' (this order/sub-order's own next reachable hop) and 'order_target' (the immutable final business destination) - see the two properties above for how they differ.",
       "type": "object",
       "required": ["type", "id"],
       "properties": {
         "type": {
           "type": "string",
           "enum": ["door", "work_center", "activity_area"],
-          "description": "The Warehouse-as-Code entity kind this target references."
+          "description": "The Topology-as-Code entity kind this target references."
         },
         "id": {
           "type": "string",
-          "description": "The Warehouse-as-Code id of the door/work_center/activity_area."
+          "description": "The Topology-as-Code id of the door/work_center/activity_area."
         }
       },
       "additionalProperties": false

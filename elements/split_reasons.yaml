@@ -25,3 +25,6 @@ split_reasons:
 
   - id: "execution_failure"
     description: "A sub-order's executing system failed to execute it (e.g. equipment fault, exception) - its full requested quantity must be reallocated to another system via a new sub-order (see completion_rule.action.reallocate_remainder)."
+
+  - id: "putaway_destination_split"
+    description: "A confirmed inbound receipt is distributed across multiple storage destinations/technologies (e.g. AutoStore vs. manual high-bay) and must be put away as separate sub-orders. Inbound counterpart of storage_technology_split - see customers/example_customer/channels/inbound/order_types/inbound_advice/strategies/split_rules.yaml for why this direction doesn't fit split_rule.target_override cleanly."

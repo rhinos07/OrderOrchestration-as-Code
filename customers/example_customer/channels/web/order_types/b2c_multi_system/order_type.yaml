@@ -1,0 +1,23 @@
+# Order-type-level file. Short and stable - references everything else.
+# Part of a channel (see ../../channel.yaml). This file validates against
+# schemas/order-type.schema.json
+#
+# Split out of b2c_standard: same header/position shape and status
+# machine, but a distinct set of split_rules/completion_rules for the
+# "multi-system outbound fulfillment" scenario (shuttle-served zone that
+# can only reach an intermediate consolidation area, closed reactively via
+# reallocate_remainder) - see docs/entity-glossary.md "Order Target vs.
+# Movement Target". Kept separate from b2c_standard's AutoStore/manual
+# scenario so completion_rule matching can't cross-fire between the two -
+# see README "Next Steps" for why that mattered.
+
+order_type:
+  id: "b2c_multi_system"
+  name: "B2C Multi-System Outbound"
+
+  imports:
+    - "structure/fields.yaml"
+    - "structure/status.yaml"
+    - "strategies/split_rules.yaml"
+    - "strategies/workflow_triggers.yaml"
+    - "strategies/completion_rules.yaml"

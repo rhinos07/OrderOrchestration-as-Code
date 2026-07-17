@@ -6,7 +6,7 @@
 
 order:
   order_id: "ORD-2001-B"
-  order_type: "b2c_standard"
+  order_type: "b2c_multi_system"
   parent_order_id: "ORD-2001"
   source_split_rule: "SPLIT_TO_MANUAL_PICK_ZONE"
   target: { type: "door", id: "GATE_3" }

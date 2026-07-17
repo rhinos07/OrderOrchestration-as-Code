@@ -1,0 +1,31 @@
+# Status state machine for this order type. Every order and sub-order of
+# this type has its own independent position in this state machine - a
+# sub-order reaching "completed" does not by itself complete its parent,
+# see strategies/completion_rules.yaml. This file validates against
+# schemas/status.schema.json
+#
+# Identical to b2c_standard's - same lifecycle shape, different
+# split/completion strategy (see order_type.yaml).
+
+statuses:
+  - id: "created"
+  - id: "allocated"
+  - id: "in_fulfillment"
+  - id: "completed"
+    terminal: true
+  - id: "cancelled"
+    terminal: true
+
+transitions:
+  - from: "created"
+    to: "allocated"
+  - from: "allocated"
+    to: "in_fulfillment"
+  - from: "in_fulfillment"
+    to: "completed"
+  - from: "created"
+    to: "cancelled"
+  - from: "allocated"
+    to: "cancelled"
+  - from: "in_fulfillment"
+    to: "cancelled"

@@ -25,21 +25,11 @@ split_rules:
     # door directly, so this sub-order inherits the parent's target
     # unchanged.
 
-  # Multi-system outbound scenario (see examples/multi_system_reallocation_walkthrough/):
-  # the shuttle-served zone can only move goods as far as a consolidation
-  # area, never all the way to the order's real target - a target_gap,
-  # closed reactively by completion_rules.yaml's REALLOCATE_SHUTTLE_TARGET_GAP,
-  # not planned upfront here.
-
-  - id: "SPLIT_TO_SHUTTLE_ZONE"
-    condition: "storage_technology_split"
-    split_by: "storage_technology"
-    target_override:
-      type: "activity_area"
-      id: "CONSOLIDATION_1"
-
-  - id: "SPLIT_TO_MANUAL_PICK_ZONE"
-    condition: "storage_technology_split"
-    split_by: "storage_technology"
-    # No target_override: the manual pick zone can reach the outbound
-    # door directly.
+  # The multi-system outbound scenario (shuttle-served zone vs. manual
+  # pick zone) used to live here too, but was split into its own
+  # b2c_multi_system order_type: with all 4 rules under one order_type,
+  # completion_rules.yaml's target_gap check couldn't tell this
+  # scenario's rules apart from that one's, and REALLOCATE_SHUTTLE_TARGET_GAP
+  # fired spuriously on the AutoStore sub-order above (its target_override
+  # also makes target != order_target, by definition). See
+  # examples/multi_system_reallocation_walkthrough/ and README "Next Steps".

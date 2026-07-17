@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://order-orchestration-as-code.internal/schemas/order-type.schema.json",
   "title": "Order Type (Order-Type-Level)",
-  "description": "A category of incoming order within a sales channel (e.g. 'b2c_standard'). Imports its own structure/ and strategies/, mirroring Warehouse-as-Code's warehouse.schema.json pattern.",
+  "description": "A category of incoming order within a sales channel (e.g. 'b2c_standard'). Imports its own structure/ and strategies/, mirroring Topology-as-Code's warehouse.schema.json pattern.",
   "type": "object",
   "required": ["order_type"],
   "properties": {

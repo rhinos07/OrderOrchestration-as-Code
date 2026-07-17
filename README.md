@@ -15,16 +15,16 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 
 | Repo | Covers |
 |---|---|
-| [`Warehouse-as-Code`](https://github.com/rhinos07/Warehouse-as-Code) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
+| [`Topology-as-Code`](https://github.com/rhinos07/Topology-as-Code) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
 | **OrderOrchestration-as-Code** (this repo) | How incoming orders are split, and which downstream workflow each split triggers |
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
 
 This repo's `workflow_trigger` values that hand off to the warehouse are
-meant to reference `Warehouse-as-Code`'s `elements/process_types.yaml`
+meant to reference `Topology-as-Code`'s `elements/process_types.yaml`
 vocabulary (see "Shared Vocabulary" below), and `order_position`'s
 `material_request.item_id` references item ids owned by
 `MasterData-as-Code`; `load_unit_request.load_unit_type` currently
-references `Warehouse-as-Code`'s `elements/load_unit_types.yaml`.
+references `Topology-as-Code`'s `elements/load_unit_types.yaml`.
 
 ## Core Principle
 
@@ -38,7 +38,7 @@ references `Warehouse-as-Code`'s `elements/load_unit_types.yaml`.
 
 A company can have multiple sales channels, and each channel can define
 multiple order types - **Company → Channel → Order Type**. This mirrors
-`Warehouse-as-Code`'s Company → Facility → Building split: a stable
+`Topology-as-Code`'s Company → Facility → Building split: a stable
 identity layer, then a `structure/` vs. `strategies/` split by change
 frequency and reviewer.
 
@@ -46,7 +46,7 @@ frequency and reviewer.
 status, or actual quantities/dates (that's runtime state in the OMS/WMS
 - here, KCC). It does not define item/article master data (that's
 `MasterData-as-Code`). And it does not define *how* a triggered workflow
-is executed inside the warehouse (that's `Warehouse-as-Code`'s
+is executed inside the warehouse (that's `Topology-as-Code`'s
 `movement_rules.yaml`/`replenishment.yaml`). This repo only defines: for
 an order of type X arriving via channel Y, what shape its header/positions
 have, under what conditions it gets split, which named workflow each
@@ -124,7 +124,7 @@ python tools/validate_examples.py examples/order_walkthrough
   manual warehouse - `split_by: "storage_technology"`), each sub-order
   gets its own `target` (the AutoStore sub-order's target is overridden
   to that cell's own `EXIT` work_center, since it can't reach the real
-  outbound door on its own - see `Warehouse-as-Code`'s
+  outbound door on its own - see `Topology-as-Code`'s
   `customers/autostore_customer`), and a `completion_rule` spawns a
   consolidation order once both sub-orders finish. Walked through in
   `docs/entity-glossary.md` under "Splitting and Completion".
@@ -133,14 +133,33 @@ python tools/validate_examples.py examples/order_walkthrough
   scenario above - not structural config, not real runtime data. See its
   own README for the flow diagram; building it surfaced a real gap in
   `completion_rule` (see "Next Steps" below).
-- `examples/multi_system_reallocation_walkthrough/` - a second scenario:
-  one order line split across a shuttle-served zone and a manually
-  picked zone (`SPLIT_TO_SHUTTLE_ZONE` / `SPLIT_TO_MANUAL_PICK_ZONE`),
-  where the shuttle zone can only reach an intermediate consolidation
-  area, not the order's real target. `REALLOCATE_SHUTTLE_TARGET_GAP`
+- `examples/multi_system_reallocation_walkthrough/` - a second scenario,
+  under its own `b2c_multi_system` order type: one order line split
+  across a shuttle-served zone and a manually picked zone
+  (`SPLIT_TO_SHUTTLE_ZONE` / `SPLIT_TO_MANUAL_PICK_ZONE`), where the
+  shuttle zone can only reach an intermediate consolidation area, not
+  the order's real target. `REALLOCATE_SHUTTLE_TARGET_GAP`
   (`when.target_gap` + `action.reallocate_remainder`) reactively closes
-  that gap with a further sub-order. See its own README and
-  `docs/entity-glossary.md`'s "Order Target vs. Movement Target".
+  that gap with a further sub-order. Originally lived under
+  `b2c_standard` alongside the AutoStore/manual scenario, until running
+  both together showed `REALLOCATE_SHUTTLE_TARGET_GAP` also firing on
+  the AutoStore sub-order (its `target_override` makes `target !=
+  order_target` too) - see its own README and `docs/entity-glossary.md`'s
+  "Order Target vs. Movement Target".
+- `customers/example_customer/channels/inbound/` - a third scenario, on
+  the inbound side: `inbound_advice` models an ASN (Avisierung - an
+  announced, not-yet-arrived shipment) that, once goods receipt is
+  confirmed, splits into putaway sub-orders per storage technology
+  (`SPLIT_TO_AUTOSTORE_PUTAWAY` / `SPLIT_TO_MANUAL_PUTAWAY`), each
+  triggering a `putaway_task`. `MARK_RECEIVED_AFTER_ALL_PUTAWAY` marks
+  the ASN itself `completed` once every putaway sub-order is done. Both
+  putaway rules also set `order_target_override` (see "Next Steps"),
+  since the storage destination decided by the split *is* the sub-order's
+  real final destination here, unlike outbound's fixed customer target.
+  One structural mismatch remains open, documented in
+  `strategies/split_rules.yaml`'s comments and in "Next Steps" below:
+  splits should only fire after goods receipt is confirmed, but
+  `split_rule` has no trigger-status concept to enforce that.
 
 ## Core Concepts (Quick Reference)
 
@@ -150,7 +169,7 @@ python tools/validate_examples.py examples/order_walkthrough
 - **target** — the *movement target*: the destination this specific
   order/sub-order's executing system must physically reach (the next
   reachable hop). A reference to a `door`, `work_center`, or
-  `activity_area` defined in `Warehouse-as-Code`. A sub-order's target
+  `activity_area` defined in `Topology-as-Code`. A sub-order's target
   can legitimately differ from its parent's (planned, via
   `split_rule.target_override`, or reactive, via
   `completion_rule.action.reallocate_remainder`).
@@ -170,11 +189,11 @@ python tools/validate_examples.py examples/order_walkthrough
   `target_override` sets a sub-order's target if different from the
   parent's). Independent of *which* workflow the result goes to (see
   `workflow_trigger`) - same separation of concerns as
-  `Warehouse-as-Code`'s `lane` ("can") vs. `movement_rule` ("may").
+  `Topology-as-Code`'s `lane` ("can") vs. `movement_rule` ("may").
 - **workflow_trigger** — maps a `split_rule` outcome to the named
   downstream workflow/process it hands off to. Where that trigger is
   something a warehouse acts on, it should reference the *same*
-  `process_type` id as `Warehouse-as-Code`'s `movement_rule.trigger`
+  `process_type` id as `Topology-as-Code`'s `movement_rule.trigger`
   (e.g. `putaway_task`, `pick_task`, `cross_dock_task`) - see "Shared
   Vocabulary" below.
 - **completion_rule** — defines what happens once sub-order(s) reach a
@@ -192,16 +211,16 @@ python tools/validate_examples.py examples/order_walkthrough
 
 Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
 
-## Shared Vocabulary with Warehouse-as-Code
+## Shared Vocabulary with Topology-as-Code
 
 `workflow_trigger` values that hand off to the warehouse should reuse the
-*same* `process_type` catalog that `Warehouse-as-Code`'s
+*same* `process_type` catalog that `Topology-as-Code`'s
 `movement_rule.trigger` references, rather than inventing a parallel set
 of names. Right now that catalog (`elements/process_types.yaml`) lives
-inside `Warehouse-as-Code` and would need to be duplicated here or
+inside `Topology-as-Code` and would need to be duplicated here or
 extracted into a small shared repo both projects reference. The same
 applies to `order-position.schema.json`'s `load_unit_request.load_unit_type`
-(currently referencing `Warehouse-as-Code`'s `elements/load_unit_types.yaml`,
+(currently referencing `Topology-as-Code`'s `elements/load_unit_types.yaml`,
 itself flagged as a candidate to move to `MasterData-as-Code`). **Don't
 solve this prematurely** - start with a duplicated/local copy here,
 and only extract a shared catalog repo once the duplication actually
@@ -225,11 +244,44 @@ causes real drift or pain.
       `tools/validate.py` has no referential-integrity check against
       another repo's data)
 - [ ] Decide the shared-vocabulary question above (duplicate vs. extract
-      a shared catalog repo with `Warehouse-as-Code`/`MasterData-as-Code`)
+      a shared catalog repo with `Topology-as-Code`/`MasterData-as-Code`)
 - [ ] Add more order types / channels to `customers/example_customer/`
       (e.g. a `b2b_bulk` type, a `cross_dock` type)
 - [ ] Consider a `sla_class` catalog (delivery-promise/priority
       classification) if/when split rules need to reference urgency
+- [ ] **Give `split_rule` a trigger-status concept.** All existing splits
+      (outbound and the new `inbound_advice`) implicitly assume the split
+      is decidable at order intake. That's true for `b2c_standard` but
+      not for inbound putaway, which can only split *after* the ASN
+      reaches `receipt_confirmed`. Not yet designed - possibly a
+      `split_rule.when_status` field mirroring `completion_rule.when`.
+- [x] ~~Let a split optionally override `order_target`, not just
+      `target`~~ - fixed: `split-rule.schema.json` gained an optional
+      `order_target_override`, sibling to `target_override`, for the
+      cases (like inbound putaway) where the split's destination *is*
+      the new final destination rather than an intermediate hop.
+      `inbound_advice`'s two putaway rules set it to the same
+      `activity_area` as their `target_override`, so `target ==
+      order_target` genuinely holds once a putaway sub-order completes -
+      see `customers/example_customer/channels/inbound/.../strategies/split_rules.yaml`.
+      Outbound rules (`b2c_standard`, `b2c_multi_system`) are unaffected -
+      omitting the field keeps `order_target` immutable, as before.
+- [x] ~~`completion_rule` can't scope itself to a specific `split_rule`'s
+      children~~ - fixed at the schema level:
+      `completion-rule.schema.json`'s `when` gained an optional
+      `source_split_rules` (list of `split_rule` ids) - a rule now only
+      considers children created by those specific rules. Applied to
+      every existing `completion_rule` (`CONSOLIDATE_AFTER_BOTH_SUBORDERS`,
+      `REALLOCATE_SHUTTLE_TARGET_GAP`, `MARK_RECEIVED_AFTER_ALL_PUTAWAY`)
+      as defense in depth, even where splitting `b2c_standard`/
+      `b2c_multi_system` apart already prevents the concrete collision
+      that surfaced this. `tools/validate.py` cross-checks the ids
+      against `split_rules.yaml`.
+- [ ] `channel.schema.json` is titled "Sales Channel" but
+      `customers/example_customer/channels/inbound/` isn't one - it
+      reuses the same grouping level for identity purposes only. Rename
+      the concept (e.g. to a neutral "Order Source") once a second
+      non-sales use case confirms the pattern, rather than guessing now.
 
 ### Open Validation Gaps
 
@@ -237,11 +289,11 @@ causes real drift or pain.
 repo (e.g. `split_rule.condition` → `elements/split_reasons.yaml`,
 `completion_rule.when.status` → `structure/status.yaml`). It does
 **not** check references that cross repo boundaries (`target.id` →
-an actual `Warehouse-as-Code` door/work_center/activity_area id,
+an actual `Topology-as-Code` door/work_center/activity_area id,
 `material_request.item_id` → an actual `MasterData-as-Code` item,
-`load_unit_request.load_unit_type` → `Warehouse-as-Code`'s
+`load_unit_request.load_unit_type` → `Topology-as-Code`'s
 `elements/load_unit_types.yaml`) - same category of gap
-`Warehouse-as-Code` itself started with before cross-file checks were
+`Topology-as-Code` itself started with before cross-file checks were
 added there.
 
 `tools/validate_examples.py` only checks each order instance and its
@@ -261,9 +313,9 @@ sub-order. `examples/order_walkthrough/` is hand-verified against
 - **Item/article master data**: SKUs, batches, UOM conversions - that's
   `MasterData-as-Code`.
 - **Warehouse structure and movement rules**: physical layout,
-  storage_types, `movement_rules.yaml` - that's `Warehouse-as-Code`.
+  storage_types, `movement_rules.yaml` - that's `Topology-as-Code`.
   This repo only decides *which* workflow trigger fires; what that
-  trigger physically does inside a warehouse is `Warehouse-as-Code`'s
+  trigger physically does inside a warehouse is `Topology-as-Code`'s
   concern.
 - **Labor management, yard management** - same reasoning as
-  `Warehouse-as-Code`'s own exclusions.
+  `Topology-as-Code`'s own exclusions.

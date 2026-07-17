@@ -14,6 +14,11 @@ completion_rules:
     when:
       status: "completed"
       quantifier: "all_children"
+      # Scopes this rule to exactly the two split_rules it's meant to
+      # watch - defense in depth now that b2c_standard only has these two
+      # rules, but keeps the rule correct if a third split_rule is ever
+      # added to this order_type. See schemas/completion-rule.schema.json.
+      source_split_rules: ["SPLIT_TO_AUTOSTORE", "SPLIT_TO_MANUAL_WAREHOUSE"]
     action:
       type: "spawn_order"
       spawn_order_type: "b2c_standard"
@@ -21,20 +26,5 @@ completion_rules:
         type: "door"
         id: "DOOR_02"
 
-  # Reactive re-split for the multi-system scenario (see
-  # examples/multi_system_reallocation_walkthrough/): a shuttle-served
-  # sub-order confirms its quantity but only reaches an intermediate
-  # consolidation area, not the order's real order_target. Fires as soon
-  # as THAT ONE child is detected (any_child + target_gap), not batched
-  # with siblings the way CONSOLIDATE_AFTER_BOTH_SUBORDERS is - the new
-  # sub-order inherits order_target unchanged; which system/route
-  # actually moves it the rest of the way is a runtime allocation
-  # decision, not declared here.
-  - id: "REALLOCATE_SHUTTLE_TARGET_GAP"
-    when:
-      status: "completed"
-      quantifier: "any_child"
-      target_gap: true
-    action:
-      type: "reallocate_remainder"
-      reallocate_order_type: "b2c_standard"
+  # REALLOCATE_SHUTTLE_TARGET_GAP moved to b2c_multi_system's own
+  # completion_rules.yaml - see split_rules.yaml's comment above for why.

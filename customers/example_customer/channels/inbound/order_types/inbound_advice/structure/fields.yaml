@@ -1,0 +1,9 @@
+# Which order-header target types and order-position request kinds this
+# order type allows. This file validates against schemas/fields.schema.json
+
+fields:
+  allowed_position_kinds:
+    - "material_request"   # expected quantity on the ASN, received/putaway quantity on its sub-orders
+  allowed_target_types:
+    - "door"           # the ASN's own target/order_target: the physical goods-receipt door
+    - "activity_area"  # a putaway sub-order's target: the storage destination it's split to

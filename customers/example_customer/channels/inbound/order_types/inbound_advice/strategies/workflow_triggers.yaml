@@ -1,0 +1,13 @@
+# Which downstream workflow starts for each split outcome. This file
+# validates against schemas/workflow-trigger.schema.json (per entry)
+
+workflow_triggers:
+  - id: "TRIGGER_AUTOSTORE_PUTAWAY"
+    split_rule: "SPLIT_TO_AUTOSTORE_PUTAWAY"
+    # Same process_type vocabulary as Topology-as-Code's
+    # elements/process_types.yaml - see README "Shared Vocabulary".
+    trigger: "putaway_task"
+
+  - id: "TRIGGER_MANUAL_PUTAWAY"
+    split_rule: "SPLIT_TO_MANUAL_PUTAWAY"
+    trigger: "putaway_task"
