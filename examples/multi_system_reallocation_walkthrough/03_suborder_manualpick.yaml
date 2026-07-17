@@ -1,0 +1,22 @@
+# The remaining 20 units are in the manually picked zone.
+# SPLIT_TO_MANUAL_PICK_ZONE fires with no target_override - that zone
+# can reach GATE_3 directly, so target inherits the parent's order_target
+# unchanged. Once "completed", target == order_target: this sub-order is
+# fully and finally fulfilled, no reallocation needed.
+
+order:
+  order_id: "ORD-2001-B"
+  order_type: "b2c_standard"
+  parent_order_id: "ORD-2001"
+  source_split_rule: "SPLIT_TO_MANUAL_PICK_ZONE"
+  target: { type: "door", id: "GATE_3" }
+  order_target: { type: "door", id: "GATE_3" }
+  status: "completed"
+
+positions:
+  - line_id: "L1-B"
+    source_line_id: "L1"
+    material_request:
+      item_id: "ITEM_WIDGET"
+      quantity: 20
+      uom: "each"

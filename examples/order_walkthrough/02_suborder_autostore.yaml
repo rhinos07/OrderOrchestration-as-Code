@@ -3,6 +3,12 @@
 # EXIT work_center (it can't reach DOOR_02 on its own). The position is
 # NEW (line_id L1-A), referencing the original via source_line_id - L1
 # on the original order (01_original_order.yaml) is never mutated.
+#
+# order_target stays DOOR_02, inherited unchanged from the parent - only
+# target (the movement target) was overridden. target != order_target
+# here even though status is "completed": the quantity was confirmed but
+# not actually moved all the way to the real destination yet - a
+# target_gap, see docs/entity-glossary.md.
 
 order:
   order_id: "ORD-1001-A"
@@ -10,6 +16,7 @@ order:
   parent_order_id: "ORD-1001"
   source_split_rule: "SPLIT_TO_AUTOSTORE"
   target: { type: "work_center", id: "EXIT" }
+  order_target: { type: "door", id: "DOOR_02" }
   status: "completed"
 
 positions:

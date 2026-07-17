@@ -1,0 +1,24 @@
+# Spawned by REALLOCATE_SHUTTLE_TARGET_GAP reacting to ORD-2001-A's
+# target_gap (it confirmed 30 units but only reached CONSOLIDATION_1).
+# Its position is a suborder_output_request against ORD-2001-A ("take
+# what that sub-order produced"), not a fresh material_request - the
+# demand itself hasn't changed, only which system moves it the rest of
+# the way. target/order_target are both GATE_3: this sub-order picks up
+# exactly where ORD-2001-A left off and finishes the job. Which system
+# actually executes this move (e.g. a cross-dock/manual transfer from
+# CONSOLIDATION_1 to GATE_3) is a runtime allocation decision, not
+# declared in this repo - see docs/entity-glossary.md.
+
+order:
+  order_id: "ORD-2001-C"
+  order_type: "b2c_standard"
+  parent_order_id: "ORD-2001"
+  target: { type: "door", id: "GATE_3" }
+  order_target: { type: "door", id: "GATE_3" }
+  status: "completed"
+
+positions:
+  - line_id: "L1-C"
+    source_line_id: "L1"
+    suborder_output_request:
+      source_order_id: "ORD-2001-A"

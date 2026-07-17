@@ -1,0 +1,21 @@
+# Illustrative order instance - NOT structural config, NOT real runtime
+# data. Worked example for the "multi-system outbound fulfillment"
+# scenario in docs/entity-glossary.md: one order line, 50 units, split
+# across a shuttle-served zone and a manually picked zone, where the
+# shuttle zone can only reach an intermediate consolidation area, not
+# the order's real target - closed by a reactive re-split, not a
+# planned one. Validated by tools/validate_examples.py.
+
+order:
+  order_id: "ORD-2001"
+  order_type: "b2c_standard"
+  target: { type: "door", id: "GATE_3" }
+  order_target: { type: "door", id: "GATE_3" }
+  status: "created"
+
+positions:
+  - line_id: "L1"
+    material_request:
+      item_id: "ITEM_WIDGET"
+      quantity: 50
+      uom: "each"

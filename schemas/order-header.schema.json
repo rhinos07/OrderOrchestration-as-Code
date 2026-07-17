@@ -4,7 +4,7 @@
   "title": "Order Header",
   "description": "Header-level structure shared by every order and sub-order: identity, lineage, target, and status. An order's positions (line items) are defined separately - see order-position.schema.json. This schema describes the SHAPE order/sub-order instances must have; actual live instances are runtime data (in the WMS/OMS), not tracked in this repo - see structure/fields.yaml for how one order_type restricts/extends this shape.",
   "type": "object",
-  "required": ["order_id", "order_type", "target"],
+  "required": ["order_id", "order_type", "target", "order_target"],
   "properties": {
     "order_id": { "type": "string" },
     "order_type": {
@@ -13,13 +13,20 @@
     },
     "parent_order_id": {
       "type": "string",
-      "description": "Empty/absent for a top-level order. Set for a sub-order created by a split_rule, or spawned by a completion_rule's spawn_order action."
+      "description": "Empty/absent for a top-level order. Set for a sub-order created by a split_rule, or spawned by a completion_rule's spawn_order/reallocate_remainder action."
     },
     "source_split_rule": {
       "type": "string",
       "description": "References the split_rule.id that created this sub-order, if any."
     },
-    "target": { "$ref": "#/definitions/target" },
+    "target": {
+      "$ref": "#/definitions/target",
+      "description": "The MOVEMENT TARGET: the destination this specific order/sub-order's executing system must physically reach - the next reachable hop, not necessarily the final business destination. Decided once at order/sub-order creation time (by the runtime OMS/WMS, typically via a routing/connectivity-graph lookup), not re-resolved dynamically here. A sub-order's target may differ from its parent's and from its own order_target - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center because that system can only move goods that far, not all the way to the order's real destination. See docs/entity-glossary.md and order_target below."
+    },
+    "order_target": {
+      "$ref": "#/definitions/target",
+      "description": "The ORDER TARGET: the immutable business destination for this order line, set once on the top-level order and inherited UNCHANGED by every descendant sub-order, no matter how many times it is split or re-split (split_rule.target_override and completion_rule.reallocate_remainder only ever change 'target', never this field). An order/sub-order is only truly fulfilled once its confirmed quantity is reached AND target == order_target - if a system can only reach an intermediate point, the quantity condition is met but this target condition is not, which is what completion_rule's 'when.target_gap' watches for."
+    },
     "status": {
       "type": "string",
       "description": "References a statuses[].id from this order_type's structure/status.yaml."
@@ -29,7 +36,7 @@
   "definitions": {
     "target": {
       "type": "object",
-      "description": "The destination this order/sub-order must reach. References a Warehouse-as-Code entity - decided once at order/sub-order creation time (by the runtime OMS/WMS), not re-resolved dynamically here. A sub-order's target may differ from its parent's (e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door) - see docs/entity-glossary.md.",
+      "description": "A destination reference - a Warehouse-as-Code entity (door/work_center/activity_area). Used both as 'target' (this order/sub-order's own next reachable hop) and 'order_target' (the immutable final business destination) - see the two properties above for how they differ.",
       "type": "object",
       "required": ["type", "id"],
       "properties": {

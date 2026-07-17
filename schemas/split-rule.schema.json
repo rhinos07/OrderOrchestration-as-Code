@@ -18,7 +18,7 @@
     },
     "target_override": {
       "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
-      "description": "The target a sub-order created by this rule gets, if different from the parent's target - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door. Omit if the sub-order should inherit the parent's target unchanged."
+      "description": "Overrides the sub-order's MOVEMENT TARGET ('target') only - never its 'order_target', which is always inherited unchanged from the parent regardless of this override. Use when the executing system for this sub-order can't reach the parent's target directly - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door. Omit if the sub-order's executing system can reach the parent's target directly, so 'target' inherits unchanged too."
     }
   },
   "additionalProperties": false

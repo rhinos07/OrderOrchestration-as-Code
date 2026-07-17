@@ -45,12 +45,17 @@
     },
     "suborder_output_request": {
       "type": "object",
-      "description": "Consolidation position: 'take whatever this completed sub-order produced', rather than requesting fresh material. Used on orders spawned by a completion_rule's spawn_order action.",
+      "description": "'Take (some or all of) what this sub-order produced', rather than requesting fresh material. Used both by orders spawned by a completion_rule's spawn_order action (consolidation - takes everything) and by ones spawned by reallocate_remainder (reactive re-split after a target gap, shortfall, or execution failure - may take only the outstanding part).",
       "required": ["source_order_id"],
       "properties": {
         "source_order_id": {
           "type": "string",
           "description": "References the order_id of a (typically completed) sub-order."
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Optional partial quantity to take from the source sub-order's output. Omit to take everything it produced (the common consolidation case). Set this when only part of the source's confirmed quantity needs reallocating - e.g. it confirmed less than requested (shortfall) and a sibling sub-order already covers the rest."
         }
       },
       "additionalProperties": false

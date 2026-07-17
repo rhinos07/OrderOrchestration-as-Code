@@ -1,0 +1,26 @@
+# 30 of the 50 units are in the shuttle-served zone. SPLIT_TO_SHUTTLE_ZONE
+# fires with target_override -> CONSOLIDATION_1 (an activity_area): the
+# shuttle system can only move goods that far, never all the way to
+# GATE_3 on its own. order_target stays GATE_3, inherited unchanged.
+#
+# Once "completed", target (CONSOLIDATION_1) != order_target (GATE_3):
+# the quantity condition is met, the target condition is not - a
+# target_gap. REALLOCATE_SHUTTLE_TARGET_GAP detects this on THIS child
+# alone (any_child) and spawns 04_suborder_reallocated.yaml.
+
+order:
+  order_id: "ORD-2001-A"
+  order_type: "b2c_standard"
+  parent_order_id: "ORD-2001"
+  source_split_rule: "SPLIT_TO_SHUTTLE_ZONE"
+  target: { type: "activity_area", id: "CONSOLIDATION_1" }
+  order_target: { type: "door", id: "GATE_3" }
+  status: "completed"
+
+positions:
+  - line_id: "L1-A"
+    source_line_id: "L1"
+    material_request:
+      item_id: "ITEM_WIDGET"
+      quantity: 30
+      uom: "each"

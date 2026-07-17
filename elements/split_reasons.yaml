@@ -16,3 +16,12 @@ split_reasons:
 
   - id: "promise_date_grouping"
     description: "Order lines have different promised delivery dates and are split to ship independently."
+
+  - id: "target_gap"
+    description: "A sub-order's executing system confirmed its requested quantity but could only physically move it to an intermediate point (e.g. a consolidation area), not the order's actual order_target - the gap between the sub-order's target and its order_target must be closed by a further sub-order (see completion_rule.when.target_gap / action.reallocate_remainder)."
+
+  - id: "quantity_shortfall"
+    description: "A sub-order's executing system confirmed less quantity than requested - the shortfall must be reallocated to another system via a new sub-order (see completion_rule.action.reallocate_remainder)."
+
+  - id: "execution_failure"
+    description: "A sub-order's executing system failed to execute it (e.g. equipment fault, exception) - its full requested quantity must be reallocated to another system via a new sub-order (see completion_rule.action.reallocate_remainder)."

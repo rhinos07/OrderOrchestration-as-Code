@@ -9,6 +9,7 @@ order:
   order_id: "ORD-1001"
   order_type: "b2c_standard"
   target: { type: "door", id: "DOOR_02" }
+  order_target: { type: "door", id: "DOOR_02" }
   status: "created"
 
 positions:

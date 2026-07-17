@@ -9,6 +9,7 @@ order:
   parent_order_id: "ORD-1001"
   source_split_rule: "SPLIT_TO_MANUAL_WAREHOUSE"
   target: { type: "door", id: "DOOR_02" }
+  order_target: { type: "door", id: "DOOR_02" }
   status: "completed"
 
 positions:

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://order-orchestration-as-code.internal/schemas/completion-rule.schema.json",
   "title": "Completion Rule",
-  "description": "Defines what happens when sub-order(s) of an order reach a given status. A sub-order reaching its own target does NOT automatically complete its parent - e.g. an AutoStore sub-order may only be able to reach its cell's own EXIT point, never the parent order's actual outbound door, so reaching the parent's target requires a further step. This rule expresses that step: either the parent's own status changes, or a new order is spawned (typically a consolidation order whose positions are suborder_output_request entries referencing the completed sub-orders, targeting the original parent's target).",
+  "description": "Defines what happens when sub-order(s) of an order reach a given status. A sub-order reaching its own target does NOT automatically complete its parent - e.g. an AutoStore sub-order may only be able to reach its cell's own EXIT point, never the parent order's actual outbound door, so reaching the parent's target requires a further step. This rule expresses that step: the parent's own status changes (update_parent_status), a new order is spawned once every piece is truly done (spawn_order - typically a consolidation order whose positions are suborder_output_request entries referencing the completed sub-orders, targeting the original parent's order_target), or the still-outstanding remainder is reactively re-split into a new sub-order (reallocate_remainder - covers a system falling short, failing, or only reaching an intermediate point instead of the order_target).",
   "type": "object",
   "required": ["id", "when", "action"],
   "properties": {
@@ -13,7 +13,7 @@
       "properties": {
         "status": {
           "type": "string",
-          "description": "References a statuses[].id (typically terminal) that sub-orders are watched for."
+          "description": "References a statuses[].id (typically terminal, e.g. 'completed' or a failure status) that sub-orders are watched for."
         },
         "quantifier": {
           "type": "string",
@@ -23,6 +23,10 @@
           "type": "integer",
           "minimum": 1,
           "description": "Required when quantifier is 'n_of_m'."
+        },
+        "target_gap": {
+          "type": "boolean",
+          "description": "If true, this rule only matches a watched child whose 'target' (movement target) differs from its 'order_target' at the moment it reaches 'status' - i.e. it confirmed its quantity but only got as far as an intermediate point (e.g. a consolidation area), not the order's real destination. Distinguishes 'confirmed but not actually there yet' from true completion. Pairs naturally with quantifier 'any_child' and action.type 'reallocate_remainder', since each gapped child is handled as soon as it is detected, not batched with its siblings. Omit (or false) for rules that only care about status, regardless of target."
         }
       },
       "additionalProperties": false
@@ -33,7 +37,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["update_parent_status", "spawn_order"]
+          "enum": ["update_parent_status", "spawn_order", "reallocate_remainder"]
         },
         "new_status": {
           "type": "string",
@@ -45,7 +49,11 @@
         },
         "spawn_target": {
           "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
-          "description": "Required when type is 'spawn_order' - typically the original parent's own target."
+          "description": "Required when type is 'spawn_order' - typically the original parent's own order_target."
+        },
+        "reallocate_order_type": {
+          "type": "string",
+          "description": "Required when type is 'reallocate_remainder' - which order_type to instantiate for the new sub-order that picks up the outstanding remainder (usually the same one the watched child belongs to). Deliberately has no matching 'reallocate_target' field: unlike spawn_order's consolidation target (known upfront in config), the reallocated sub-order's target/order_target are always inherited unchanged from the triggering child's own order_target - which system/route then executes it is a runtime allocation decision (see docs/entity-glossary.md), not something declared here. Its position(s) are typically suborder_output_request entries referencing the triggering child's order_id, so the new sub-order picks up exactly what that child produced."
         }
       },
       "additionalProperties": false
@@ -60,6 +68,10 @@
     {
       "if": { "properties": { "action": { "properties": { "type": { "const": "spawn_order" } } } } },
       "then": { "properties": { "action": { "required": ["type", "spawn_order_type", "spawn_target"] } } }
+    },
+    {
+      "if": { "properties": { "action": { "properties": { "type": { "const": "reallocate_remainder" } } } } },
+      "then": { "properties": { "action": { "required": ["type", "reallocate_order_type"] } } }
     },
     {
       "if": { "properties": { "when": { "properties": { "quantifier": { "const": "n_of_m" } } } } },

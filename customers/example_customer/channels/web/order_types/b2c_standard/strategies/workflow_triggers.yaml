@@ -11,3 +11,11 @@ workflow_triggers:
   - id: "TRIGGER_MANUAL_PICK"
     split_rule: "SPLIT_TO_MANUAL_WAREHOUSE"
     trigger: "pick_task"
+
+  - id: "TRIGGER_SHUTTLE_PICK"
+    split_rule: "SPLIT_TO_SHUTTLE_ZONE"
+    trigger: "pick_task"
+
+  - id: "TRIGGER_MANUAL_PICK_ZONE"
+    split_rule: "SPLIT_TO_MANUAL_PICK_ZONE"
+    trigger: "pick_task"

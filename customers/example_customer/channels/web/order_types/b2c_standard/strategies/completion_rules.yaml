@@ -20,3 +20,21 @@ completion_rules:
       spawn_target:
         type: "door"
         id: "DOOR_02"
+
+  # Reactive re-split for the multi-system scenario (see
+  # examples/multi_system_reallocation_walkthrough/): a shuttle-served
+  # sub-order confirms its quantity but only reaches an intermediate
+  # consolidation area, not the order's real order_target. Fires as soon
+  # as THAT ONE child is detected (any_child + target_gap), not batched
+  # with siblings the way CONSOLIDATE_AFTER_BOTH_SUBORDERS is - the new
+  # sub-order inherits order_target unchanged; which system/route
+  # actually moves it the rest of the way is a runtime allocation
+  # decision, not declared here.
+  - id: "REALLOCATE_SHUTTLE_TARGET_GAP"
+    when:
+      status: "completed"
+      quantifier: "any_child"
+      target_gap: true
+    action:
+      type: "reallocate_remainder"
+      reallocate_order_type: "b2c_standard"

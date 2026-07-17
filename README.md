@@ -133,15 +133,32 @@ python tools/validate_examples.py examples/order_walkthrough
   scenario above - not structural config, not real runtime data. See its
   own README for the flow diagram; building it surfaced a real gap in
   `completion_rule` (see "Next Steps" below).
+- `examples/multi_system_reallocation_walkthrough/` - a second scenario:
+  one order line split across a shuttle-served zone and a manually
+  picked zone (`SPLIT_TO_SHUTTLE_ZONE` / `SPLIT_TO_MANUAL_PICK_ZONE`),
+  where the shuttle zone can only reach an intermediate consolidation
+  area, not the order's real target. `REALLOCATE_SHUTTLE_TARGET_GAP`
+  (`when.target_gap` + `action.reallocate_remainder`) reactively closes
+  that gap with a further sub-order. See its own README and
+  `docs/entity-glossary.md`'s "Order Target vs. Movement Target".
 
 ## Core Concepts (Quick Reference)
 
 - **order (header)** — one order/sub-order instance: identity, lineage
-  (`parent_order_id`, `source_split_rule`), a `target`, and a `status`.
-- **target** — the destination an order/sub-order must reach: a
-  reference to a `door`, `work_center`, or `activity_area` defined in
-  `Warehouse-as-Code`. A sub-order's target can legitimately differ from
-  its parent's.
+  (`parent_order_id`, `source_split_rule`), a `target`/`order_target`,
+  and a `status`.
+- **target** — the *movement target*: the destination this specific
+  order/sub-order's executing system must physically reach (the next
+  reachable hop). A reference to a `door`, `work_center`, or
+  `activity_area` defined in `Warehouse-as-Code`. A sub-order's target
+  can legitimately differ from its parent's (planned, via
+  `split_rule.target_override`, or reactive, via
+  `completion_rule.action.reallocate_remainder`).
+- **order_target** — the immutable business destination, set once on
+  the top-level order and inherited unchanged by every descendant
+  sub-order. An order/sub-order is only truly fulfilled once its
+  confirmed quantity is met **and** `target == order_target` - see
+  `docs/entity-glossary.md`'s "Order Target vs. Movement Target".
 - **position (line item)** — requests exactly one of a `load_unit_request`
   (a specific load unit), a `material_request` (item + quantity), or a
   `suborder_output_request` (the output of an already-completed
@@ -161,9 +178,13 @@ python tools/validate_examples.py examples/order_walkthrough
   (e.g. `putaway_task`, `pick_task`, `cross_dock_task`) - see "Shared
   Vocabulary" below.
 - **completion_rule** — defines what happens once sub-order(s) reach a
-  given status: either the parent's own status changes
-  (`update_parent_status`), or a new order is spawned
-  (`spawn_order` - typically a consolidation order).
+  given status: the parent's own status changes
+  (`update_parent_status`), a new order is spawned once every piece is
+  truly done (`spawn_order` - typically a consolidation order), or the
+  still-outstanding remainder is reactively re-split into a new
+  sub-order (`reallocate_remainder`, via `when.target_gap` - covers a
+  system falling short, failing, or only reaching an intermediate point
+  instead of the order's real target).
 - **status** / state machine — the lifecycle an order or sub-order moves
   through, and which transitions are allowed. Every order/sub-order has
   its own independent position in the state machine - a sub-order

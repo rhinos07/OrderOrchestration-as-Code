@@ -19,6 +19,7 @@ order:
   order_type: "b2c_standard"
   parent_order_id: "ORD-1001"
   target: { type: "door", id: "DOOR_02" }
+  order_target: { type: "door", id: "DOOR_02" }
   status: "completed"
 
 positions:
