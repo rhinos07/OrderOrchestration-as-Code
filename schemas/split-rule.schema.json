@@ -27,7 +27,7 @@
         },
         "dimension_value": {
           "type": "string",
-          "description": "The value of 'split_by' this rule covers - e.g. with split_by 'storage_technology', one rule covers 'autostore' and its sibling covers 'manual_warehouse'. Deliberately a free string, not a catalog: the value space differs per dimension, and the runtime is what resolves a given position's actual value (which storage technology holds this stock is live inventory state, which these repos do not model). What IS declared here is which value each rule claims, so the runtime matches rather than guesses. tools/validate.py requires sibling rules sharing a split_by to declare distinct values."
+          "description": "The value of 'split_by' this rule covers. Deliberately a free string, not a catalog field, because the value space differs per dimension and the runtime is what resolves a given position's actual value (which storage technology holds this stock is live inventory state, which these repos do not model). What IS declared here is which value each rule claims, so the runtime matches rather than guesses. tools/validate.py requires sibling rules sharing a split_by to declare distinct values. When split_by is 'storage_technology', values are meant to be ids from Topology-as-Code's elements/storage_technologies.yaml (e.g. 'autostore', 'manual_warehouse', 'shuttle') - the same loosely-coupled, unchecked-by-tools/validate.py string-id convention this repo already uses for target.id and material_request.item_id. Other split_by dimensions currently have no anchored vocabulary."
         }
       },
       "additionalProperties": false

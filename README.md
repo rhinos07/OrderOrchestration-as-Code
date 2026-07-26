@@ -272,10 +272,21 @@ object with enumerated fields - rather than introducing a parser. See
 [`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
 measure 4.
 
-`dimension_value` is a free string rather than a catalog: the value space
-differs per dimension, and inventing a catalog per dimension before a
-second dimension is in real use would be exactly the premature
-generalisation this family avoids elsewhere.
+`dimension_value` is a free string rather than a catalog field: the value
+space differs per dimension, and inventing a catalog per dimension before
+a second dimension is in real use would be exactly the premature
+generalisation this family avoids elsewhere. For the one dimension that
+does have a real cross-repo anchor, use it: when `split_by` is
+`storage_technology`, values should be ids from `Topology-as-Code`'s
+`elements/storage_technologies.yaml` (`autostore`, `manual_warehouse`,
+`shuttle`, `channel_storage`) - the same loosely-coupled, unchecked
+string-id convention this repo already uses for `target.id` and
+`material_request.item_id`. `b2c_multi_system`'s `SPLIT_TO_MANUAL_PICK_ZONE`
+used to invent its own `"manual_pick"` instead of reusing
+`manual_warehouse`; `WMS-POC` reading the real technology from
+`Topology-as-Code` is what caught it. `tools/validate.py` does not check
+this reference - no repo's does, for any cross-repo reference (see "Open
+Validation Gaps" below).
 
 ## Split Dimensions
 
@@ -310,10 +321,12 @@ inside `Topology-as-Code` and would need to be duplicated here or
 extracted into a small shared repo both projects reference. The same
 applies to `order-position.schema.json`'s `load_unit_request.load_unit_type`
 (currently referencing `Topology-as-Code`'s `elements/load_unit_types.yaml`,
-itself flagged as a candidate to move to `MasterData-as-Code`). **Don't
-solve this prematurely** - start with a duplicated/local copy here,
-and only extract a shared catalog repo once the duplication actually
-causes real drift or pain.
+itself flagged as a candidate to move to `MasterData-as-Code`), and to
+`split_rule.when.dimension_value` when `split_by` is `storage_technology`
+(references `Topology-as-Code`'s `elements/storage_technologies.yaml` -
+see "Split Conditions" above). **Don't solve this prematurely** - start
+with a duplicated/local copy here, and only extract a shared catalog repo
+once the duplication actually causes real drift or pain.
 
 ## Next Steps for This Repo
 
