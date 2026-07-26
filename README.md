@@ -71,7 +71,8 @@ order-orchestration-definitions/
 │   ├── completion-rule.schema.json
 │   └── split-reason.schema.json
 ├── elements/
-│   └── split_reasons.yaml            # Catalog of reasons an order can be split
+│   ├── split_reasons.yaml            # Catalog of reasons an order can be split
+│   └── split_dimensions.yaml         # Catalog of dimensions an order can be split along
 ├── customers/
 │   └── <customer>/                          # = Company
 │       ├── company.yaml                     # Top level, lists channels
@@ -232,6 +233,29 @@ python tools/validate_examples.py examples/order_walkthrough
   reaching a terminal status does not by itself complete its parent.
 
 Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
+
+## Split Dimensions
+
+`split_rule.split_by` references `elements/split_dimensions.yaml` rather
+than being a closed enum. The dimensions a business splits orders along are
+open-ended - a new one is a catalog entry now instead of a schema change,
+the same way `condition` already references `elements/split_reasons.yaml`.
+See
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 3.
+
+The catalog ships with exactly the five values the enum had
+(`storage_technology`, `fulfillment_location`, `carrier`, `promise_date`,
+`item_category`) - no dimensions were invented ahead of a real scenario
+needing one. `tools/validate.py` checks the reference.
+
+Note this names the dimension only. Deciding which concrete sub-orders a
+split produces remains runtime logic, because `split_rule.condition` is a
+reason id rather than an evaluable predicate - see "Next Steps" and
+ADR-0001 measure 4.
+
+Structural enums stay closed: `completion_rule`'s `quantifier` and
+`action.type` are grammar, not vocabulary.
 
 ## Shared Vocabulary with Topology-as-Code
 

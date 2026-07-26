@@ -29,6 +29,7 @@ ELEMENTS_DIR = REPO_ROOT / "elements"
 
 ELEMENT_CATALOGS = {
     "split_reasons.yaml": ("split-reason.schema.json", "split_reasons"),
+    "split_dimensions.yaml": ("split-dimension.schema.json", "split_dimensions"),
 }
 
 
@@ -153,19 +154,28 @@ def check_status_refs(path: Path) -> list[str]:
 
 
 def check_split_rule_refs(path: Path, element_ids: dict[str, set[str]]) -> list[str]:
-    """Checks split_rules.yaml's condition -> elements/split_reasons.yaml id."""
+    """Checks split_rules.yaml's catalog references:
+    - condition -> elements/split_reasons.yaml id
+    - split_by  -> elements/split_dimensions.yaml id
+    """
     errors: list[str] = []
     data = load_yaml(path)
     if not data:
         return errors
 
     reason_ids = element_ids.get("split_reasons", set())
+    dimension_ids = element_ids.get("split_dimensions", set())
     for rule in data.get("split_rules", []):
         rule_id = rule.get("id", "?")
         cond = rule.get("condition")
         if cond and reason_ids and cond not in reason_ids:
             errors.append(
                 f"{path}: split_rule '{rule_id}': condition '{cond}' not found in elements/split_reasons.yaml"
+            )
+        dimension = rule.get("split_by")
+        if dimension and dimension_ids and dimension not in dimension_ids:
+            errors.append(
+                f"{path}: split_rule '{rule_id}': split_by '{dimension}' not found in elements/split_dimensions.yaml"
             )
     return errors
 

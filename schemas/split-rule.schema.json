@@ -13,8 +13,8 @@
     },
     "split_by": {
       "type": "string",
-      "enum": ["storage_technology", "fulfillment_location", "carrier", "promise_date", "item_category"],
-      "description": "The dimension sub-orders are split along."
+      "pattern": "^[a-z0-9_]+$",
+      "description": "The dimension sub-orders are split along. References an id in elements/split_dimensions.yaml - the dimensions a business splits along are open-ended, so this is a catalog rather than a closed enum, the same way condition references elements/split_reasons.yaml. tools/validate.py checks the reference."
     },
     "target_override": {
       "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
