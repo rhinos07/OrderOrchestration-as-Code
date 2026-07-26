@@ -11,6 +11,8 @@
 # scenario so completion_rule matching can't cross-fire between the two -
 # see README "Next Steps" for why that mattered.
 
+api_version: "order-orchestration-as-code/v1"
+
 order_type:
   id: "b2c_multi_system"
   name: "B2C Multi-System Outbound"

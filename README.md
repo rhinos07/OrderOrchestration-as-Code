@@ -100,6 +100,28 @@ order-orchestration-definitions/
 └── .github/workflows/validate.yaml   # CI pipeline (dynamic per-customer matrix)
 ```
 
+## Schema Versioning
+
+Every `order_type.yaml` declares the schema generation it conforms to:
+
+```yaml
+api_version: "order-orchestration-as-code/v1"
+```
+
+It sits on the order type because that is this repo's self-contained,
+independently loadable scope - the unit an engine loads to run one order
+flow, and the same role `warehouse.yaml` plays in `Topology-as-Code`.
+`company.yaml` and `channel.yaml` index the level below them rather than
+being datasets of their own, so they carry no version.
+
+This matters more here than in the structural repos: several open items in
+"Next Steps" below (a trigger-status concept for `split_rule`, real
+semantics for `split_rule.condition`) are incompatible changes when they
+land. The version is what lets them land as a new generation instead of
+silently reinterpreting existing order types. See
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 2.
+
 ## Quickstart
 
 ```bash

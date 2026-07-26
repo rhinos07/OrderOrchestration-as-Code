@@ -8,6 +8,8 @@
 # way a b2c_standard sub-order shares its parent's order_type. See
 # strategies/split_rules.yaml for why that's an imperfect fit.
 
+api_version: "order-orchestration-as-code/v1"
+
 order_type:
   id: "inbound_advice"
   name: "Inbound Advice (ASN) / Putaway"

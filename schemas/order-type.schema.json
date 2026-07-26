@@ -4,8 +4,12 @@
   "title": "Order Type (Order-Type-Level)",
   "description": "A category of incoming order within a sales channel (e.g. 'b2c_standard'). Imports its own structure/ and strategies/, mirroring Topology-as-Code's warehouse.schema.json pattern.",
   "type": "object",
-  "required": ["order_type"],
+  "required": ["api_version", "order_type"],
   "properties": {
+    "api_version": {
+      "const": "order-orchestration-as-code/v1",
+      "description": "Schema generation this order_type document conforms to. Declared on the order_type because that is this repo's self-contained, independently loadable scope - the unit an engine loads to run one order flow, and the same role warehouse.yaml plays in Topology-as-Code. A future incompatible change to this repo's schemas raises the version instead of silently reinterpreting existing data."
+    },
     "order_type": {
       "type": "object",
       "required": ["id", "imports"],
