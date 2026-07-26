@@ -179,10 +179,10 @@ python tools/validate_examples.py examples/order_walkthrough
   putaway rules also set `order_target_override` (see "Next Steps"),
   since the storage destination decided by the split *is* the sub-order's
   real final destination here, unlike outbound's fixed customer target.
-  One structural mismatch remains open, documented in
-  `strategies/split_rules.yaml`'s comments and in "Next Steps" below:
-  splits should only fire after goods receipt is confirmed, but
-  `split_rule` has no trigger-status concept to enforce that.
+  That these splits may only fire after goods receipt is confirmed used to
+  be describable only in a comment; both rules now state it as
+  `when.status: "receipt_confirmed"`, so it is enforced - see "Split
+  Conditions" below.
 
 ## Core Concepts (Quick Reference)
 
@@ -208,9 +208,10 @@ python tools/validate_examples.py examples/order_walkthrough
   original position; it creates new positions on the sub-order(s)
   referencing the original via `source_line_id`.
 - **split_rule** — defines whether/how an order is decomposed into
-  sub-orders (`condition` references `elements/split_reasons.yaml`;
-  `target_override` sets a sub-order's target if different from the
-  parent's). Independent of *which* workflow the result goes to (see
+  sub-orders (`condition` references `elements/split_reasons.yaml` for the
+  reason; `when` says when this particular rule applies - see "Split
+  Conditions"; `target_override` sets a sub-order's target if different
+  from the parent's). Independent of *which* workflow the result goes to (see
   `workflow_trigger`) - same separation of concerns as
   `Topology-as-Code`'s `lane` ("can") vs. `movement_rule` ("may").
 - **workflow_trigger** — maps a `split_rule` outcome to the named
@@ -233,6 +234,48 @@ python tools/validate_examples.py examples/order_walkthrough
   reaching a terminal status does not by itself complete its parent.
 
 Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
+
+## Split Conditions
+
+A `split_rule` separates *why* an order is split from *when a particular
+rule applies*:
+
+```yaml
+- id: "SPLIT_TO_AUTOSTORE_PUTAWAY"
+  condition: "putaway_destination_split"   # the reason - shared by siblings
+  split_by: "storage_technology"           # the dimension
+  when:
+    status: "receipt_confirmed"            # not decidable before goods receipt
+    dimension_value: "autostore"           # the value THIS rule covers
+```
+
+`condition` alone could never distinguish rules: `b2c_standard`'s
+`SPLIT_TO_AUTOSTORE` and `SPLIT_TO_MANUAL_WAREHOUSE` were identical in
+every declared field, so only a runtime engine's hardcoded rule list could
+tell which part of an order each was meant to handle (`WMS-POC` Finding
+#1). `when.dimension_value` is what makes a set of split rules
+dispatchable, and `tools/validate.py` requires siblings sharing a
+`split_by` to declare distinct values.
+
+`when.status` gates timing: omit it for splits decidable at intake (the
+outbound case), state it for splits that depend on something having
+physically happened.
+
+**Why not an expression language.** A predicate like
+`stock.storage_type == 'AUTOSTORE_GRID'` looks more powerful but could not
+answer the actual question: which storage technology holds an item's stock
+is live inventory state, which this repo family deliberately does not
+model. The honest division is that the rule declares which value it
+claims, and the runtime resolves what a given position's value actually
+is. `when` therefore mirrors `completion_rule.when` - a small structured
+object with enumerated fields - rather than introducing a parser. See
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 4.
+
+`dimension_value` is a free string rather than a catalog: the value space
+differs per dimension, and inventing a catalog per dimension before a
+second dimension is in real use would be exactly the premature
+generalisation this family avoids elsewhere.
 
 ## Split Dimensions
 
@@ -295,12 +338,24 @@ causes real drift or pain.
       (e.g. a `b2b_bulk` type, a `cross_dock` type)
 - [ ] Consider a `sla_class` catalog (delivery-promise/priority
       classification) if/when split rules need to reference urgency
-- [ ] **Give `split_rule` a trigger-status concept.** All existing splits
-      (outbound and the new `inbound_advice`) implicitly assume the split
-      is decidable at order intake. That's true for `b2c_standard` but
-      not for inbound putaway, which can only split *after* the ASN
-      reaches `receipt_confirmed`. Not yet designed - possibly a
-      `split_rule.when_status` field mirroring `completion_rule.when`.
+- [x] ~~**Give `split_rule` a trigger-status concept.** All existing splits
+      implicitly assume the split is decidable at order intake. That's true
+      for `b2c_standard` but not for inbound putaway, which can only split
+      *after* the ASN reaches `receipt_confirmed`.~~ - fixed as
+      `split_rule.when.status`, mirroring `completion_rule.when` as
+      suggested. `inbound_advice`'s two putaway rules now state
+      `receipt_confirmed`, so the precondition is enforced rather than
+      described in a comment. See "Split Conditions" above.
+- [x] ~~**Give `split_rule.condition` real semantics.** `condition` names a
+      reason, not a predicate - nothing said which rule applied to a given
+      order, so two sibling rules could be identical in every declared
+      field (`WMS-POC` Finding #1).~~ - fixed as `split_rule.when`, which
+      splits the reason (`condition`, shared by siblings) from what
+      actually distinguishes and gates a rule. `when.dimension_value`
+      declares which value of `split_by` each rule claims, and
+      `tools/validate.py` requires siblings sharing a `split_by` to be
+      distinguishable. Deliberately not an expression language - see
+      "Split Conditions" above for why one would not have helped.
 - [x] ~~Let a split optionally override `order_target`, not just
       `target`~~ - fixed: `split-rule.schema.json` gained an optional
       `order_target_override`, sibling to `target_override`, for the
