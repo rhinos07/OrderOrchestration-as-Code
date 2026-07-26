@@ -223,11 +223,15 @@ python tools/validate_examples.py examples/order_walkthrough
 - **completion_rule** — defines what happens once sub-order(s) reach a
   given status: the parent's own status changes
   (`update_parent_status`), a new order is spawned once every piece is
-  truly done (`spawn_order` - typically a consolidation order), or the
-  still-outstanding remainder is reactively re-split into a new
-  sub-order (`reallocate_remainder`, via `when.target_gap` - covers a
-  system falling short, failing, or only reaching an intermediate point
-  instead of the order's real target).
+  truly done (`spawn_order` - typically a consolidation order; set
+  `action.supersedes_parent: true` to also move the parent to the
+  reserved terminal `superseded` status, since a superseded parent isn't
+  itself fulfilled), or the still-outstanding remainder is reactively
+  re-split into a new sub-order (`reallocate_remainder`, via
+  `when.target_gap` - covers a system falling short, failing, or only
+  reaching an intermediate point instead of the order's real target). A
+  rule fires **at most once per parent** - it does not re-arm if the set
+  of children it watches changes later.
 - **status** / state machine — the lifecycle an order or sub-order moves
   through, and which transitions are allowed. Every order/sub-order has
   its own independent position in the state machine - a sub-order
@@ -330,17 +334,32 @@ once the duplication actually causes real drift or pain.
 
 ## Next Steps for This Repo
 
-- [ ] **Fix the completion_rule re-fire / parent-completion gap** (found
-      while building `examples/order_walkthrough/`): once a spawned
-      consolidation order also reaches the watched status, it's
+- [x] ~~**Fix the completion_rule re-fire / parent-completion gap**
+      (found while building `examples/order_walkthrough/`): once a
+      spawned consolidation order also reaches the watched status, it's
       indistinguishable from the original split children, so (a) nothing
       marks the top-level order itself as done, and (b) the same
       `completion_rule` could fire again and spawn a second consolidation
-      order. Likely fix: add a `when.source` filter to
-      `completion-rule.schema.json` (e.g. restrict to specific
-      `split_rule` ids, or exclude children created by a
-      `completion_rule`) - not yet designed, deliberately left open. See
-      `examples/order_walkthrough/README.md` for the concrete case.
+      order.~~ - fixed as two separate things, confirmed by actually
+      reproducing (b) against `WMS-POC`'s engine with its re-fire guard
+      removed: a `reallocate_remainder`-created sibling sharing a
+      `source_split_rule` with an already-counted child was enough to
+      make `all_children` match a second time - `source_split_rules`
+      alone doesn't prevent this, since the new sibling's origin id is
+      one it's already scoped to. (a) `action.supersedes_parent` (new,
+      required when `type: spawn_order`) transitions the parent to a
+      reserved terminal `superseded` status when true - `b2c_standard`'s
+      `CONSOLIDATE_AFTER_BOTH_SUBORDERS` sets it, and
+      `structure/status.yaml` now has that status and a transition to it;
+      `tools/validate.py` checks both exist whenever a rule declares
+      `supersedes_parent: true`. (b) `completion-rule.schema.json` now
+      states normatively that a rule fires **at most once per parent** -
+      formalizing what `WMS-POC`'s `_fired_rules` guard already did as an
+      undocumented workaround, rather than the `when.source` filter
+      originally guessed at here (which already exists as
+      `source_split_rules` and doesn't solve this specific case). See
+      `examples/order_walkthrough/README.md` for the concrete case this
+      was found in.
 - [ ] Build out `MasterData-as-Code` far enough that `material_request.item_id`
       can be cross-checked against real item ids (not yet validated -
       `tools/validate.py` has no referential-integrity check against
