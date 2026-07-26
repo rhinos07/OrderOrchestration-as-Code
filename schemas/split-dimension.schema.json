@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/split-dimension.schema.json",
+  "title": "Split Dimension",
+  "description": "Catalog entry describing a dimension an order can be decomposed along. Referenced by split_rule.split_by. Replaces a closed enum, because the dimensions a business splits along are open-ended - see Warehouse-as-Code ADR-0001, measure 3.",
+  "type": "object",
+  "required": ["id"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$",
+      "description": "Unique ID, e.g. 'storage_technology'"
+    },
+    "description": { "type": "string" }
+  },
+  "additionalProperties": true
+}
