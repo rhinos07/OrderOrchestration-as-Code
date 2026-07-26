@@ -201,6 +201,67 @@ def check_workflow_trigger_refs(path: Path, split_rules_data: dict | None) -> li
     return errors
 
 
+def check_split_rule_when(path: Path, status_data: dict | None) -> list[str]:
+    """Checks split_rules.yaml's 'when' block:
+    - when.status -> status.yaml statuses id, within the same order_type
+    - sibling rules sharing a split_by must declare distinct
+      when.dimension_value, so a set of split_rules is actually dispatchable
+
+    The distinctness rule is the point of the whole 'when' block. Before it
+    existed, b2c_standard's SPLIT_TO_AUTOSTORE and SPLIT_TO_MANUAL_WAREHOUSE
+    were identical in every declared field - same condition, same split_by -
+    so nothing but a runtime engine's hardcoded rule list could tell which
+    part of an order each was meant to handle.
+    """
+    errors: list[str] = []
+    data = load_yaml(path)
+    if not data:
+        return errors
+
+    status_ids = {s.get("id") for s in (status_data or {}).get("statuses", []) if s.get("id")}
+    rules = data.get("split_rules", [])
+
+    for rule in rules:
+        rule_id = rule.get("id", "?")
+        when = rule.get("when") or {}
+        status = when.get("status")
+        if status and status_ids and status not in status_ids:
+            errors.append(
+                f"{path}: split_rule '{rule_id}': when.status '{status}' not found in structure/status.yaml"
+            )
+
+    # Group by split_by; a dimension used by a single rule needs no value,
+    # since there is no sibling it could be confused with.
+    by_dimension: dict[str, list[dict]] = {}
+    for rule in rules:
+        dimension = rule.get("split_by")
+        if dimension:
+            by_dimension.setdefault(dimension, []).append(rule)
+
+    for dimension, sharing in sorted(by_dimension.items()):
+        if len(sharing) < 2:
+            continue
+        seen: dict[str, str] = {}
+        for rule in sharing:
+            rule_id = rule.get("id", "?")
+            value = (rule.get("when") or {}).get("dimension_value")
+            if value is None:
+                errors.append(
+                    f"{path}: split_rule '{rule_id}': when.dimension_value is required "
+                    f"because another split_rule also splits by '{dimension}' - without it "
+                    f"the rules are indistinguishable"
+                )
+            elif value in seen:
+                errors.append(
+                    f"{path}: split_rule '{rule_id}': when.dimension_value '{value}' is already "
+                    f"claimed by split_rule '{seen[value]}' for split_by '{dimension}'"
+                )
+            else:
+                seen[value] = rule_id
+
+    return errors
+
+
 def check_completion_rule_refs(path: Path, status_data: dict | None, split_rules_data: dict | None) -> list[str]:
     """Checks completion_rules.yaml's when.status / action.new_status ->
     status.yaml statuses id, and when.source_split_rules -> split_rules.yaml
@@ -271,6 +332,9 @@ def validate_order_type_file(order_type_file: Path, element_ids: dict[str, set[s
     # Cross-file checks within this order_type.
     split_rules_data = load_yaml(imports["split_rules.yaml"]) if "split_rules.yaml" in imports else {}
     status_data = load_yaml(imports["status.yaml"]) if "status.yaml" in imports else {}
+
+    if "split_rules.yaml" in imports:
+        all_errors += check_split_rule_when(imports["split_rules.yaml"], status_data)
 
     if "workflow_triggers.yaml" in imports:
         all_errors += check_workflow_trigger_refs(imports["workflow_triggers.yaml"], split_rules_data)

@@ -16,6 +16,22 @@
       "pattern": "^[a-z0-9_]+$",
       "description": "The dimension sub-orders are split along. References an id in elements/split_dimensions.yaml - the dimensions a business splits along are open-ended, so this is a catalog rather than a closed enum, the same way condition references elements/split_reasons.yaml. tools/validate.py checks the reference."
     },
+    "when": {
+      "type": "object",
+      "description": "When this rule applies. Mirrors completion-rule.schema.json's 'when': a small structured object with enumerated fields, deliberately not an expression language. 'condition' above names the human-readable REASON for splitting and is shared by sibling rules; 'when' is what actually distinguishes one rule from another and gates its timing. Splitting the two apart is what makes a set of split_rules dispatchable at all - before this existed, two rules could be identical in every declared field and only a runtime engine's hardcoded rule list could tell them apart.",
+      "minProperties": 1,
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "The rule is only evaluated once the order has reached this status - references a statuses[].id in this order_type's structure/status.yaml. Omit for splits decidable at intake (the outbound case). Required in practice for splits that depend on something that has physically happened, e.g. inbound putaway can only be decided after the ASN reaches 'receipt_confirmed'."
+        },
+        "dimension_value": {
+          "type": "string",
+          "description": "The value of 'split_by' this rule covers - e.g. with split_by 'storage_technology', one rule covers 'autostore' and its sibling covers 'manual_warehouse'. Deliberately a free string, not a catalog: the value space differs per dimension, and the runtime is what resolves a given position's actual value (which storage technology holds this stock is live inventory state, which these repos do not model). What IS declared here is which value each rule claims, so the runtime matches rather than guesses. tools/validate.py requires sibling rules sharing a split_by to declare distinct values."
+        }
+      },
+      "additionalProperties": false
+    },
     "target_override": {
       "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
       "description": "Overrides the sub-order's MOVEMENT TARGET ('target'). By default this never touches 'order_target' (see order_target_override below) - use when the executing system for this sub-order can't reach the parent's target directly - e.g. an AutoStore sub-order's target is the cell's own EXIT work_center, not the parent's outbound door. Omit if the sub-order's executing system can reach the parent's target directly, so 'target' inherits unchanged too."
