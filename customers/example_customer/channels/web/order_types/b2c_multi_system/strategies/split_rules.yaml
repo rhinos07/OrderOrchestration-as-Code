@@ -22,6 +22,11 @@ split_rules:
     condition: "storage_technology_split"
     split_by: "storage_technology"
     when:
-      dimension_value: "manual_pick"
+      # Was "manual_pick" - renamed to match Topology-as-Code's
+      # elements/storage_technologies.yaml id, the same one
+      # b2c_standard/inbound_advice's manual rules already use. "manual_pick"
+      # was this order_type inventing its own name for the same technology -
+      # exactly the drift an unanchored vocabulary produces.
+      dimension_value: "manual_warehouse"
     # No target_override: the manual pick zone can reach the outbound
     # door directly.
