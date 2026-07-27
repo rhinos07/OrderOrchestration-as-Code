@@ -18,13 +18,19 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 | [`Topology-as-Code`](https://github.com/rhinos07/Topology-as-Code) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
 | **OrderOrchestration-as-Code** (this repo) | How incoming orders are split, and which downstream workflow each split triggers |
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
+| [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration: search-zone sequence, selection strategy, constraints |
 
 This repo's `workflow_trigger` values that hand off to the warehouse are
 meant to reference `Topology-as-Code`'s `elements/process_types.yaml`
 vocabulary (see "Shared Vocabulary" below), and `order_position`'s
 `material_request.item_id` references item ids owned by
 `MasterData-as-Code`; `load_unit_request.load_unit_type` currently
-references `Topology-as-Code`'s `elements/load_unit_types.yaml`.
+references `Topology-as-Code`'s `elements/load_unit_types.yaml`. A
+`material_request.item_id`/`quantity` is also the same demand shape
+`Allocation-as-Code`'s `search_rule.applies_to.item_id` scopes a search
+strategy to - this repo doesn't itself trigger or consult a stock
+search, it only produces the item/quantity demand that a runtime
+component would hand to one.
 
 ## Core Principle
 
