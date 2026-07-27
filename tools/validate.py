@@ -262,16 +262,26 @@ def check_split_rule_when(path: Path, status_data: dict | None) -> list[str]:
     return errors
 
 
+SUPERSEDED_STATUS_ID = "superseded"
+
+
 def check_completion_rule_refs(path: Path, status_data: dict | None, split_rules_data: dict | None) -> list[str]:
     """Checks completion_rules.yaml's when.status / action.new_status ->
     status.yaml statuses id, and when.source_split_rules -> split_rules.yaml
-    ids, within the same order_type."""
+    ids, within the same order_type. Also checks the
+    action.supersedes_parent convention: any completion_rule that spawns an
+    order and supersedes its parent requires structure/status.yaml to
+    actually provide a way to reach the reserved 'superseded' status -
+    otherwise a spawning order_type would declare an action its own status
+    machine can never carry out."""
     errors: list[str] = []
     data = load_yaml(path)
     if not data:
         return errors
 
-    status_ids = {s.get("id") for s in (status_data or {}).get("statuses", []) if s.get("id")}
+    statuses = (status_data or {}).get("statuses", [])
+    status_ids = {s.get("id") for s in statuses if s.get("id")}
+    transitions = (status_data or {}).get("transitions", [])
     split_rule_ids = {r.get("id") for r in (split_rules_data or {}).get("split_rules", []) if r.get("id")}
     for rule in data.get("completion_rules", []):
         rule_id = rule.get("id", "?")
@@ -294,6 +304,18 @@ def check_completion_rule_refs(path: Path, status_data: dict | None, split_rules
             errors.append(
                 f"{path}: completion_rule '{rule_id}': action.new_status '{new_status}' not found in structure/status.yaml"
             )
+
+        if action.get("type") == "spawn_order" and action.get("supersedes_parent") and status_ids:
+            if SUPERSEDED_STATUS_ID not in status_ids:
+                errors.append(
+                    f"{path}: completion_rule '{rule_id}': action.supersedes_parent is true but "
+                    f"structure/status.yaml has no '{SUPERSEDED_STATUS_ID}' status"
+                )
+            elif not any(t.get("to") == SUPERSEDED_STATUS_ID for t in transitions):
+                errors.append(
+                    f"{path}: completion_rule '{rule_id}': action.supersedes_parent is true but "
+                    f"no transition in structure/status.yaml reaches '{SUPERSEDED_STATUS_ID}'"
+                )
     return errors
 
 

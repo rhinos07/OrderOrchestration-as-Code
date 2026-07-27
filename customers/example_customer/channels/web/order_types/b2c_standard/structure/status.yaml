@@ -12,6 +12,12 @@ statuses:
     terminal: true
   - id: "cancelled"
     terminal: true
+  # Reached only via a completion_rule whose action.supersedes_parent is
+  # true (see strategies/completion_rules.yaml's CONSOLIDATE_AFTER_BOTH_SUBORDERS)
+  # - the order isn't fulfilled itself, it's replaced by the order that
+  # rule spawns. Distinct from "completed" on purpose.
+  - id: "superseded"
+    terminal: true
 
 transitions:
   - from: "created"
@@ -26,3 +32,7 @@ transitions:
     to: "cancelled"
   - from: "in_fulfillment"
     to: "cancelled"
+  # b2c_standard-style top-level orders never advance past "created"
+  # before their completion_rule fires - see supersedes_parent above.
+  - from: "created"
+    to: "superseded"
