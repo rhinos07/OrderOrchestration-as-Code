@@ -2,6 +2,8 @@
 # Part of a channel (see ../../channel.yaml). This file validates against
 # schemas/order-type.schema.json
 
+api_version: "order-orchestration-as-code/v1"
+
 order_type:
   id: "b2c_standard"
   name: "B2C Standard Order"

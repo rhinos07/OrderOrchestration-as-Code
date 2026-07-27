@@ -2,17 +2,12 @@
 # ORD-1001-B are "completed" (all_children), spawning this order:
 # target = the original order's real target (DOOR_02), positions =
 # suborder_output_request entries referencing the two completed
-# sub-orders rather than fresh material_requests.
-#
-# OPEN GAP (see chat / README "Open Validation Gap" for the write-up):
-# this order is ALSO a child of ORD-1001 (parent_order_id below).
-# Once IT reaches "completed", nothing currently marks the ORIGINAL
-# order ORD-1001 as done - and worse, CONSOLIDATE_AFTER_BOTH_SUBORDERS's
-# own "all_children completed" condition would now also match (A, B, AND
-# this order are all completed), which would incorrectly try to spawn a
-# SECOND consolidation order. completion_rule has no way yet to say
-# "only count children from split_rules X/Y" vs. "the child a
-# completion_rule itself spawned".
+# sub-orders rather than fresh material_requests. It also carries
+# action.supersedes_parent: true, which moves ORD-1001 to the reserved
+# terminal "superseded" status - see this example's README "A gap this
+# example surfaced" for the full write-up, including why this order
+# being ALSO a child of ORD-1001 (parent_order_id below) does not, on
+# its own, make CONSOLIDATE_AFTER_BOTH_SUBORDERS re-fire.
 
 order:
   order_id: "ORD-1001-C"

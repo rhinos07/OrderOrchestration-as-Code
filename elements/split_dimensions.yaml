@@ -1,0 +1,32 @@
+# Reusable catalog of dimensions an order can be split along.
+# Referenced by strategies/split_rules.yaml -> split_rule.split_by.
+#
+# This was a closed enum in split-rule.schema.json. The dimensions a
+# business splits orders along are open-ended - a new one is a catalog
+# entry now rather than a schema change, the same way split_reasons.yaml
+# already works for split_rule.condition. See Warehouse-as-Code ADR-0001,
+# measure 3.
+#
+# The catalog deliberately ships with exactly the five values the enum had:
+# there is no need to invent further dimensions before a real scenario
+# calls for one.
+#
+# Note this names the dimension only. Which concrete sub-orders a split
+# produces is a runtime decision - split_rule.condition is a reason id, not
+# an evaluable predicate (ADR-0001 measure 4, still open).
+
+split_dimensions:
+  - id: "storage_technology"
+    description: "Different parts of the order live in different storage technologies within one facility (e.g. AutoStore vs. manual warehouse) and must be handled as separate sub-orders."
+
+  - id: "fulfillment_location"
+    description: "Parts of the order are fulfilled from different facilities/DCs."
+
+  - id: "carrier"
+    description: "Parts of the order ship with different carriers, so they cannot travel as one consignment."
+
+  - id: "promise_date"
+    description: "Parts of the order have different delivery promises; splitting lets the earlier part ship without waiting."
+
+  - id: "item_category"
+    description: "Parts of the order belong to categories that must be handled separately (e.g. hazmat, temperature-controlled, oversized)."

@@ -43,26 +43,34 @@ Note what's preserved throughout: `01_original_order.yaml`'s positions
 is a *new* position referencing the original via `source_line_id`, so
 the original order always shows what was actually ordered.
 
-## A gap this example surfaced
+## A gap this example surfaced - since fixed
 
-Building this concrete walkthrough exposed something the schema doesn't
+Building this concrete walkthrough exposed something the schema didn't
 yet handle: **who marks `ORD-1001` itself as done, and how do we stop
-`CONSOLIDATE_AFTER_BOTH_SUBORDERS` from firing a second time?**
+`CONSOLIDATE_AFTER_BOTH_SUBORDERS` from firing a second time?** Both are
+fixed now; this section records what the gap actually was, since the
+diagnosis mattered as much as the fix.
 
 `ORD-1001-C` is also a child of `ORD-1001` (`parent_order_id:
-"ORD-1001"`). Once it reaches `completed`:
+"ORD-1001"`). Once it reaches `completed`, two things needed answering:
 
-1. Nothing currently updates `ORD-1001`'s own status - there's no
-   `completion_rule` watching for *the consolidation order specifically*
-   reaching a terminal status.
-2. Worse: `CONSOLIDATE_AFTER_BOTH_SUBORDERS`'s own condition
-   (`status: completed`, `quantifier: all_children`) would now also
-   match again, since ORD-1001's children are `A`, `B`, *and* `C`, all
-   completed - which would incorrectly try to `spawn_order` a *second*
-   consolidation order.
-
-`completion_rule.when` has no way yet to distinguish "the children
-created by split_rules X/Y" from "the child a completion_rule itself
-spawned". See the repo's "Open Validation Gap" / "Next Steps" in the
-main README for the proposed fix (a `when.source` filter) - deliberately
-left as an open question rather than silently designed around.
+1. **Nothing updated `ORD-1001`'s own status.** Fixed:
+   `CONSOLIDATE_AFTER_BOTH_SUBORDERS` now sets
+   `action.supersedes_parent: true`, which moves `ORD-1001` to the
+   reserved terminal `superseded` status (see `structure/status.yaml`) -
+   it isn't itself fulfilled, it's replaced by `ORD-1001-C`.
+2. **Could the same rule re-fire because `C` is a sibling too?** Turns
+   out no, already: `CONSOLIDATE_AFTER_BOTH_SUBORDERS`'s
+   `when.source_split_rules: ["SPLIT_TO_AUTOSTORE",
+   "SPLIT_TO_MANUAL_WAREHOUSE"]` (added earlier as defense in depth, see
+   main README) already excludes `ORD-1001-C` from `scoped_siblings` -
+   it wasn't created by either split_rule, so it has no
+   `source_split_rule` matching either id. The *real* remaining re-fire
+   risk was narrower and different: a `reallocate_remainder`-created
+   sibling that reuses an *already-scoped* `source_split_rule` id (the
+   id of the child whose gap it's closing) would still make
+   `all_children` match a second time, since `source_split_rules`
+   filters by *which rule created a child*, not by *whether this
+   specific child was already counted*. Fixed by formalizing that a
+   `completion_rule` fires **at most once per parent**, full stop - see
+   `completion-rule.schema.json`.

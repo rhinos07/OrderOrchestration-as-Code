@@ -25,6 +25,10 @@ completion_rules:
       spawn_target:
         type: "door"
         id: "DOOR_02"
+      # b2c_standard-001 itself is never fulfilled - the consolidation
+      # order this spawns is what actually reaches DOOR_02. Without this,
+      # the parent stayed at "created" forever. See structure/status.yaml.
+      supersedes_parent: true
 
   # REALLOCATE_SHUTTLE_TARGET_GAP moved to b2c_multi_system's own
   # completion_rules.yaml - see split_rules.yaml's comment above for why.

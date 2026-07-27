@@ -77,7 +77,8 @@ order-orchestration-definitions/
 │   ├── completion-rule.schema.json
 │   └── split-reason.schema.json
 ├── elements/
-│   └── split_reasons.yaml            # Catalog of reasons an order can be split
+│   ├── split_reasons.yaml            # Catalog of reasons an order can be split
+│   └── split_dimensions.yaml         # Catalog of dimensions an order can be split along
 ├── customers/
 │   └── <customer>/                          # = Company
 │       ├── company.yaml                     # Top level, lists channels
@@ -105,6 +106,28 @@ order-orchestration-definitions/
 │   └── entity-glossary.md
 └── .github/workflows/validate.yaml   # CI pipeline (dynamic per-customer matrix)
 ```
+
+## Schema Versioning
+
+Every `order_type.yaml` declares the schema generation it conforms to:
+
+```yaml
+api_version: "order-orchestration-as-code/v1"
+```
+
+It sits on the order type because that is this repo's self-contained,
+independently loadable scope - the unit an engine loads to run one order
+flow, and the same role `warehouse.yaml` plays in `Topology-as-Code`.
+`company.yaml` and `channel.yaml` index the level below them rather than
+being datasets of their own, so they carry no version.
+
+This matters more here than in the structural repos: several open items in
+"Next Steps" below (a trigger-status concept for `split_rule`, real
+semantics for `split_rule.condition`) are incompatible changes when they
+land. The version is what lets them land as a new generation instead of
+silently reinterpreting existing order types. See
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 2.
 
 ## Quickstart
 
@@ -162,10 +185,10 @@ python tools/validate_examples.py examples/order_walkthrough
   putaway rules also set `order_target_override` (see "Next Steps"),
   since the storage destination decided by the split *is* the sub-order's
   real final destination here, unlike outbound's fixed customer target.
-  One structural mismatch remains open, documented in
-  `strategies/split_rules.yaml`'s comments and in "Next Steps" below:
-  splits should only fire after goods receipt is confirmed, but
-  `split_rule` has no trigger-status concept to enforce that.
+  That these splits may only fire after goods receipt is confirmed used to
+  be describable only in a comment; both rules now state it as
+  `when.status: "receipt_confirmed"`, so it is enforced - see "Split
+  Conditions" below.
 
 ## Core Concepts (Quick Reference)
 
@@ -191,9 +214,10 @@ python tools/validate_examples.py examples/order_walkthrough
   original position; it creates new positions on the sub-order(s)
   referencing the original via `source_line_id`.
 - **split_rule** — defines whether/how an order is decomposed into
-  sub-orders (`condition` references `elements/split_reasons.yaml`;
-  `target_override` sets a sub-order's target if different from the
-  parent's). Independent of *which* workflow the result goes to (see
+  sub-orders (`condition` references `elements/split_reasons.yaml` for the
+  reason; `when` says when this particular rule applies - see "Split
+  Conditions"; `target_override` sets a sub-order's target if different
+  from the parent's). Independent of *which* workflow the result goes to (see
   `workflow_trigger`) - same separation of concerns as
   `Topology-as-Code`'s `lane` ("can") vs. `movement_rule` ("may").
 - **workflow_trigger** — maps a `split_rule` outcome to the named
@@ -205,17 +229,97 @@ python tools/validate_examples.py examples/order_walkthrough
 - **completion_rule** — defines what happens once sub-order(s) reach a
   given status: the parent's own status changes
   (`update_parent_status`), a new order is spawned once every piece is
-  truly done (`spawn_order` - typically a consolidation order), or the
-  still-outstanding remainder is reactively re-split into a new
-  sub-order (`reallocate_remainder`, via `when.target_gap` - covers a
-  system falling short, failing, or only reaching an intermediate point
-  instead of the order's real target).
+  truly done (`spawn_order` - typically a consolidation order; set
+  `action.supersedes_parent: true` to also move the parent to the
+  reserved terminal `superseded` status, since a superseded parent isn't
+  itself fulfilled), or the still-outstanding remainder is reactively
+  re-split into a new sub-order (`reallocate_remainder`, via
+  `when.target_gap` - covers a system falling short, failing, or only
+  reaching an intermediate point instead of the order's real target). A
+  rule fires **at most once per parent** - it does not re-arm if the set
+  of children it watches changes later.
 - **status** / state machine — the lifecycle an order or sub-order moves
   through, and which transitions are allowed. Every order/sub-order has
   its own independent position in the state machine - a sub-order
   reaching a terminal status does not by itself complete its parent.
 
 Full glossary: [`docs/entity-glossary.md`](docs/entity-glossary.md)
+
+## Split Conditions
+
+A `split_rule` separates *why* an order is split from *when a particular
+rule applies*:
+
+```yaml
+- id: "SPLIT_TO_AUTOSTORE_PUTAWAY"
+  condition: "putaway_destination_split"   # the reason - shared by siblings
+  split_by: "storage_technology"           # the dimension
+  when:
+    status: "receipt_confirmed"            # not decidable before goods receipt
+    dimension_value: "autostore"           # the value THIS rule covers
+```
+
+`condition` alone could never distinguish rules: `b2c_standard`'s
+`SPLIT_TO_AUTOSTORE` and `SPLIT_TO_MANUAL_WAREHOUSE` were identical in
+every declared field, so only a runtime engine's hardcoded rule list could
+tell which part of an order each was meant to handle (`WMS-POC` Finding
+#1). `when.dimension_value` is what makes a set of split rules
+dispatchable, and `tools/validate.py` requires siblings sharing a
+`split_by` to declare distinct values.
+
+`when.status` gates timing: omit it for splits decidable at intake (the
+outbound case), state it for splits that depend on something having
+physically happened.
+
+**Why not an expression language.** A predicate like
+`stock.storage_type == 'AUTOSTORE_GRID'` looks more powerful but could not
+answer the actual question: which storage technology holds an item's stock
+is live inventory state, which this repo family deliberately does not
+model. The honest division is that the rule declares which value it
+claims, and the runtime resolves what a given position's value actually
+is. `when` therefore mirrors `completion_rule.when` - a small structured
+object with enumerated fields - rather than introducing a parser. See
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 4.
+
+`dimension_value` is a free string rather than a catalog field: the value
+space differs per dimension, and inventing a catalog per dimension before
+a second dimension is in real use would be exactly the premature
+generalisation this family avoids elsewhere. For the one dimension that
+does have a real cross-repo anchor, use it: when `split_by` is
+`storage_technology`, values should be ids from `Topology-as-Code`'s
+`elements/storage_technologies.yaml` (`autostore`, `manual_warehouse`,
+`shuttle`, `channel_storage`) - the same loosely-coupled, unchecked
+string-id convention this repo already uses for `target.id` and
+`material_request.item_id`. `b2c_multi_system`'s `SPLIT_TO_MANUAL_PICK_ZONE`
+used to invent its own `"manual_pick"` instead of reusing
+`manual_warehouse`; `WMS-POC` reading the real technology from
+`Topology-as-Code` is what caught it. `tools/validate.py` does not check
+this reference - no repo's does, for any cross-repo reference (see "Open
+Validation Gaps" below).
+
+## Split Dimensions
+
+`split_rule.split_by` references `elements/split_dimensions.yaml` rather
+than being a closed enum. The dimensions a business splits orders along are
+open-ended - a new one is a catalog entry now instead of a schema change,
+the same way `condition` already references `elements/split_reasons.yaml`.
+See
+[`Warehouse-as-Code` ADR-0001](https://github.com/rhinos07/Warehouse-as-Code/blob/main/docs/adr/0001-layered-specification-model.md),
+measure 3.
+
+The catalog ships with exactly the five values the enum had
+(`storage_technology`, `fulfillment_location`, `carrier`, `promise_date`,
+`item_category`) - no dimensions were invented ahead of a real scenario
+needing one. `tools/validate.py` checks the reference.
+
+Note this names the dimension only. Deciding which concrete sub-orders a
+split produces remains runtime logic, because `split_rule.condition` is a
+reason id rather than an evaluable predicate - see "Next Steps" and
+ADR-0001 measure 4.
+
+Structural enums stay closed: `completion_rule`'s `quantifier` and
+`action.type` are grammar, not vocabulary.
 
 ## Shared Vocabulary with Topology-as-Code
 
@@ -227,24 +331,41 @@ inside `Topology-as-Code` and would need to be duplicated here or
 extracted into a small shared repo both projects reference. The same
 applies to `order-position.schema.json`'s `load_unit_request.load_unit_type`
 (currently referencing `Topology-as-Code`'s `elements/load_unit_types.yaml`,
-itself flagged as a candidate to move to `MasterData-as-Code`). **Don't
-solve this prematurely** - start with a duplicated/local copy here,
-and only extract a shared catalog repo once the duplication actually
-causes real drift or pain.
+itself flagged as a candidate to move to `MasterData-as-Code`), and to
+`split_rule.when.dimension_value` when `split_by` is `storage_technology`
+(references `Topology-as-Code`'s `elements/storage_technologies.yaml` -
+see "Split Conditions" above). **Don't solve this prematurely** - start
+with a duplicated/local copy here, and only extract a shared catalog repo
+once the duplication actually causes real drift or pain.
 
 ## Next Steps for This Repo
 
-- [ ] **Fix the completion_rule re-fire / parent-completion gap** (found
-      while building `examples/order_walkthrough/`): once a spawned
-      consolidation order also reaches the watched status, it's
+- [x] ~~**Fix the completion_rule re-fire / parent-completion gap**
+      (found while building `examples/order_walkthrough/`): once a
+      spawned consolidation order also reaches the watched status, it's
       indistinguishable from the original split children, so (a) nothing
       marks the top-level order itself as done, and (b) the same
       `completion_rule` could fire again and spawn a second consolidation
-      order. Likely fix: add a `when.source` filter to
-      `completion-rule.schema.json` (e.g. restrict to specific
-      `split_rule` ids, or exclude children created by a
-      `completion_rule`) - not yet designed, deliberately left open. See
-      `examples/order_walkthrough/README.md` for the concrete case.
+      order.~~ - fixed as two separate things, confirmed by actually
+      reproducing (b) against `WMS-POC`'s engine with its re-fire guard
+      removed: a `reallocate_remainder`-created sibling sharing a
+      `source_split_rule` with an already-counted child was enough to
+      make `all_children` match a second time - `source_split_rules`
+      alone doesn't prevent this, since the new sibling's origin id is
+      one it's already scoped to. (a) `action.supersedes_parent` (new,
+      required when `type: spawn_order`) transitions the parent to a
+      reserved terminal `superseded` status when true - `b2c_standard`'s
+      `CONSOLIDATE_AFTER_BOTH_SUBORDERS` sets it, and
+      `structure/status.yaml` now has that status and a transition to it;
+      `tools/validate.py` checks both exist whenever a rule declares
+      `supersedes_parent: true`. (b) `completion-rule.schema.json` now
+      states normatively that a rule fires **at most once per parent** -
+      formalizing what `WMS-POC`'s `_fired_rules` guard already did as an
+      undocumented workaround, rather than the `when.source` filter
+      originally guessed at here (which already exists as
+      `source_split_rules` and doesn't solve this specific case). See
+      `examples/order_walkthrough/README.md` for the concrete case this
+      was found in.
 - [ ] Build out `MasterData-as-Code` far enough that `material_request.item_id`
       can be cross-checked against real item ids (not yet validated -
       `tools/validate.py` has no referential-integrity check against
@@ -255,12 +376,24 @@ causes real drift or pain.
       (e.g. a `b2b_bulk` type, a `cross_dock` type)
 - [ ] Consider a `sla_class` catalog (delivery-promise/priority
       classification) if/when split rules need to reference urgency
-- [ ] **Give `split_rule` a trigger-status concept.** All existing splits
-      (outbound and the new `inbound_advice`) implicitly assume the split
-      is decidable at order intake. That's true for `b2c_standard` but
-      not for inbound putaway, which can only split *after* the ASN
-      reaches `receipt_confirmed`. Not yet designed - possibly a
-      `split_rule.when_status` field mirroring `completion_rule.when`.
+- [x] ~~**Give `split_rule` a trigger-status concept.** All existing splits
+      implicitly assume the split is decidable at order intake. That's true
+      for `b2c_standard` but not for inbound putaway, which can only split
+      *after* the ASN reaches `receipt_confirmed`.~~ - fixed as
+      `split_rule.when.status`, mirroring `completion_rule.when` as
+      suggested. `inbound_advice`'s two putaway rules now state
+      `receipt_confirmed`, so the precondition is enforced rather than
+      described in a comment. See "Split Conditions" above.
+- [x] ~~**Give `split_rule.condition` real semantics.** `condition` names a
+      reason, not a predicate - nothing said which rule applied to a given
+      order, so two sibling rules could be identical in every declared
+      field (`WMS-POC` Finding #1).~~ - fixed as `split_rule.when`, which
+      splits the reason (`condition`, shared by siblings) from what
+      actually distinguishes and gates a rule. `when.dimension_value`
+      declares which value of `split_by` each rule claims, and
+      `tools/validate.py` requires siblings sharing a `split_by` to be
+      distinguishable. Deliberately not an expression language - see
+      "Split Conditions" above for why one would not have helped.
 - [x] ~~Let a split optionally override `order_target`, not just
       `target`~~ - fixed: `split-rule.schema.json` gained an optional
       `order_target_override`, sibling to `target_override`, for the

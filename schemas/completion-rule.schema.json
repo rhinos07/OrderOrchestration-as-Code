@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://order-orchestration-as-code.internal/schemas/completion-rule.schema.json",
   "title": "Completion Rule",
-  "description": "Defines what happens when sub-order(s) of an order reach a given status. A sub-order reaching its own target does NOT automatically complete its parent - e.g. an AutoStore sub-order may only be able to reach its cell's own EXIT point, never the parent order's actual outbound door, so reaching the parent's target requires a further step. This rule expresses that step: the parent's own status changes (update_parent_status), a new order is spawned once every piece is truly done (spawn_order - typically a consolidation order whose positions are suborder_output_request entries referencing the completed sub-orders, targeting the original parent's order_target), or the still-outstanding remainder is reactively re-split into a new sub-order (reallocate_remainder - covers a system falling short, failing, or only reaching an intermediate point instead of the order_target).",
+  "description": "Defines what happens when sub-order(s) of an order reach a given status. A sub-order reaching its own target does NOT automatically complete its parent - e.g. an AutoStore sub-order may only be able to reach its cell's own EXIT point, never the parent order's actual outbound door, so reaching the parent's target requires a further step. This rule expresses that step: the parent's own status changes (update_parent_status), a new order is spawned once every piece is truly done (spawn_order - typically a consolidation order whose positions are suborder_output_request entries referencing the completed sub-orders, targeting the original parent's order_target), or the still-outstanding remainder is reactively re-split into a new sub-order (reallocate_remainder - covers a system falling short, failing, or only reaching an intermediate point instead of the order_target). NORMATIVE: a completion_rule fires AT MOST ONCE per parent order. An engine MUST record that a (parent, completion_rule.id) pair has fired and MUST NOT re-evaluate that rule for that parent again, even if the set of children the rule watches later changes (e.g. a reallocate_remainder-created sibling shares a source_split_rule with an already-counted child, which would otherwise make an all_children/n_of_m quantifier match a second time and re-run the action - e.g. spawning a second, redundant consolidation order). A scenario that genuinely needs to react to a later-arriving sibling needs its own, separately identified completion_rule - this one does not re-arm.",
   "type": "object",
   "required": ["id", "when", "action"],
   "properties": {
@@ -57,6 +57,10 @@
           "$ref": "https://order-orchestration-as-code.internal/schemas/order-header.schema.json#/definitions/target",
           "description": "Required when type is 'spawn_order' - typically the original parent's own order_target."
         },
+        "supersedes_parent": {
+          "type": "boolean",
+          "description": "Required when type is 'spawn_order'. If true (the normal case), firing this action ALSO transitions the parent to the terminal status literally named 'superseded' in this order_type's structure/status.yaml - the parent is not itself fulfilled, it is replaced by the spawned order, which is a different thing from 'completed' and needs its own terminal status rather than being left to sit in whatever status it was last in. structure/status.yaml MUST then declare a 'superseded' status (terminal: true) and at least one transition reaching it; tools/validate.py checks both. Set to false only for the rare case where the parent genuinely still needs further handling after spawning (no example currently needs this)."
+        },
         "reallocate_order_type": {
           "type": "string",
           "description": "Required when type is 'reallocate_remainder' - which order_type to instantiate for the new sub-order that picks up the outstanding remainder (usually the same one the watched child belongs to). Deliberately has no matching 'reallocate_target' field: unlike spawn_order's consolidation target (known upfront in config), the reallocated sub-order's target/order_target are always inherited unchanged from the triggering child's own order_target - which system/route then executes it is a runtime allocation decision (see docs/entity-glossary.md), not something declared here. Its position(s) are typically suborder_output_request entries referencing the triggering child's order_id, so the new sub-order picks up exactly what that child produced."
@@ -73,7 +77,7 @@
     },
     {
       "if": { "properties": { "action": { "properties": { "type": { "const": "spawn_order" } } } } },
-      "then": { "properties": { "action": { "required": ["type", "spawn_order_type", "spawn_target"] } } }
+      "then": { "properties": { "action": { "required": ["type", "spawn_order_type", "spawn_target", "supersedes_parent"] } } }
     },
     {
       "if": { "properties": { "action": { "properties": { "type": { "const": "reallocate_remainder" } } } } },

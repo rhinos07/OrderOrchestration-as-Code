@@ -9,6 +9,9 @@ split_rules:
   - id: "SPLIT_TO_AUTOSTORE"
     condition: "storage_technology_split"
     split_by: "storage_technology"
+    when:
+      # No status: an outbound split is decidable at intake.
+      dimension_value: "autostore"
     # The AutoStore cell can't reach the outbound door on its own - see
     # Warehouse-as-Code's customers/autostore_customer, whose whole
     # building has no door/lane infrastructure, only ENTRY/EXIT
@@ -21,6 +24,8 @@ split_rules:
   - id: "SPLIT_TO_MANUAL_WAREHOUSE"
     condition: "storage_technology_split"
     split_by: "storage_technology"
+    when:
+      dimension_value: "manual_warehouse"
     # No target_override: the manual warehouse can reach the outbound
     # door directly, so this sub-order inherits the parent's target
     # unchanged.
