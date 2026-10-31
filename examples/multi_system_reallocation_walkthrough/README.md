@@ -27,15 +27,15 @@ python tools/validate_examples.py examples/multi_system_reallocation_walkthrough
 ## The flow
 
 ```
-01_original_order.yaml        ORD-2001, target=order_target=GATE_3
+01_original_order.yaml        ORD-2001, target=order_target=DOOR_02
   L1: 50x ITEM_WIDGET
 
         │ split_rule: SPLIT_TO_SHUTTLE_ZONE     split_rule: SPLIT_TO_MANUAL_PICK_ZONE
         ▼                                       ▼
 02_suborder_shuttle.yaml                03_suborder_manualpick.yaml
   ORD-2001-A, qty 30                      ORD-2001-B, qty 20
-  target=CONSOLIDATION_1 (override)       target=GATE_3 (inherited)
-  order_target=GATE_3                     order_target=GATE_3
+  target=CONSOLIDATION_1 (override)       target=DOOR_02 (inherited)
+  order_target=DOOR_02                     order_target=DOOR_02
   status: completed                       status: completed
   target != order_target -> target_gap    target == order_target -> DONE
 
@@ -44,7 +44,7 @@ python tools/validate_examples.py examples/multi_system_reallocation_walkthrough
         ▼
 04_suborder_reallocated.yaml
   ORD-2001-C
-  target=order_target=GATE_3
+  target=order_target=DOOR_02
   L1-C: suborder_output_request -> ORD-2001-A (take its 30 units)
   status: completed -> target == order_target -> DONE
 ```

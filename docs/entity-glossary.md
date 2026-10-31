@@ -102,24 +102,24 @@ configure) - *which* system or route actually closes the gap is a
 runtime allocation decision, same as the "target is decided once, not
 re-resolved dynamically here" principle below.
 
-Worked example: 50 units requested, `order_target` = door `GATE_3`.
+Worked example: 50 units requested, `order_target` = door `DOOR_02`.
 30 units sit in a shuttle-served zone (reachable only as far as a
 consolidation area), 20 in a manually picked zone (reachable directly
 to the door).
 
 ```
-1. OrderLine: qty 50, order_target = GATE_3
+1. OrderLine: qty 50, order_target = DOOR_02
 
 2. Split (planned, by storage_technology):
    Sub-order A: qty 30, target = CONSOLIDATION_1 (target_override)
-   Sub-order B: qty 20, target = GATE_3 (inherited)
+   Sub-order B: qty 20, target = DOOR_02 (inherited)
 
 3. Sub-order B reaches "completed": target == order_target -> done, closed.
 
 4. Sub-order A reaches "completed": target != order_target -> target_gap.
    completion_rule (when.target_gap, quantifier: any_child) fires
    action.reallocate_remainder -> spawns Sub-order C:
-     target = order_target = GATE_3 (inherited, not statically declared)
+     target = order_target = DOOR_02 (inherited, not statically declared)
      position: suborder_output_request -> Sub-order A (take its 30 units)
 
 5. Sub-order C reaches "completed": target == order_target -> done.

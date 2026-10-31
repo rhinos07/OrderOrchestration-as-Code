@@ -381,11 +381,12 @@ once the duplication actually causes real drift or pain.
       `source_split_rules` and doesn't solve this specific case). See
       `examples/order_walkthrough/README.md` for the concrete case this
       was found in.
-- [ ] Item ids: this repo's configuration holds none; only the
-      illustrative `examples/` do, and they still use ids `MasterData-as-Code`
-      does not define (`ITEM_SMALL_GADGET`, `ITEM_BULKY_LAMP`,
-      `ITEM_WIDGET`) and door `GATE_3`. Align them with the example data
-      or mark them as free-standing. Live orders are runtime data.
+- [x] ~~Item ids: this repo's configuration holds none; only the
+      illustrative `examples/` do, and they used ids defined nowhere~~ -
+      their items now exist in `MasterData-as-Code` (category `household`),
+      door `GATE_3` became hall_3's `DOOR_02`, and `Warehouse-as-Code`'s
+      site check resolves the examples' targets and items too. Live orders
+      are runtime data.
 - [x] ~~Decide the shared-vocabulary question above (duplicate vs. extract
       a shared catalog repo with `Topology-as-Code`/`MasterData-as-Code`)~~ -
       decided without a shared repo: each catalog has one owner
