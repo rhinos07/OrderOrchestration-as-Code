@@ -1,0 +1,11 @@
+# What happens to a line that cannot be covered because no stock is
+# available anywhere (after any reallocate_remainder has been tried).
+# This file validates against schemas/shortage-policy.schema.json
+
+shortage_policy:
+  # Standard for B2C: ship what is there, deliver the rest later.
+  default: "backorder"
+  # A single order may instead ask to cancel the remainder.
+  allowed_overrides: ["ship_partial"]
+  # Do not ship a substitute item to consumers without consent.
+  allow_substitution: false

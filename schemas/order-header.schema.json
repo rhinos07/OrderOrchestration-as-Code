@@ -30,6 +30,10 @@
     "status": {
       "type": "string",
       "description": "References a statuses[].id from this order_type's structure/status.yaml."
+    },
+    "shortage_policy": {
+      "$ref": "shortage-policy.schema.json#/definitions/policy",
+      "description": "Optional per-order override of the order_type's shortage_policy.default. Only values in the order_type's shortage_policy.allowed_overrides (or the default itself) are accepted - see schemas/shortage-policy.schema.json."
     }
   },
   "additionalProperties": true,

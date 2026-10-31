@@ -14,3 +14,4 @@ order_type:
     - "strategies/split_rules.yaml"
     - "strategies/workflow_triggers.yaml"
     - "strategies/completion_rules.yaml"
+    - "strategies/shortage_policy.yaml"

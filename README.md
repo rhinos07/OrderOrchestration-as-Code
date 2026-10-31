@@ -238,6 +238,14 @@ python tools/validate_examples.py examples/order_walkthrough
   reaching an intermediate point instead of the order's real target). A
   rule fires **at most once per parent** - it does not re-arm if the set
   of children it watches changes later.
+- **shortage_policy** — what happens to a line that cannot be covered
+  because no stock is available anywhere (after any
+  `reallocate_remainder`): `backorder`, `ship_partial`, `hold` or
+  `cancel_line`. Declared per order_type in
+  `strategies/shortage_policy.yaml` as `default`; a single order may
+  override it in its header, but only with a value from
+  `allowed_overrides`. Optional `allow_substitution` lets the engine use
+  the item's substitute from `MasterData-as-Code` first.
 - **status** / state machine — the lifecycle an order or sub-order moves
   through, and which transitions are allowed. Every order/sub-order has
   its own independent position in the state machine - a sub-order

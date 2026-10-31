@@ -11,6 +11,9 @@ order:
   target: { type: "door", id: "DOOR_02" }
   order_target: { type: "door", id: "DOOR_02" }
   status: "created"
+  # Overrides b2c_standard's default (backorder): this customer wants no
+  # second delivery. Allowed by the order_type's allowed_overrides.
+  shortage_policy: "ship_partial"
 
 positions:
   - line_id: "L1"
