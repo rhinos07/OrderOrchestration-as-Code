@@ -381,12 +381,17 @@ once the duplication actually causes real drift or pain.
       `source_split_rules` and doesn't solve this specific case). See
       `examples/order_walkthrough/README.md` for the concrete case this
       was found in.
-- [ ] Build out `MasterData-as-Code` far enough that `material_request.item_id`
-      can be cross-checked against real item ids (not yet validated -
-      `tools/validate.py` has no referential-integrity check against
-      another repo's data)
-- [ ] Decide the shared-vocabulary question above (duplicate vs. extract
-      a shared catalog repo with `Topology-as-Code`/`MasterData-as-Code`)
+- [ ] Item ids: this repo's configuration holds none; only the
+      illustrative `examples/` do, and they still use ids `MasterData-as-Code`
+      does not define (`ITEM_SMALL_GADGET`, `ITEM_BULKY_LAMP`,
+      `ITEM_WIDGET`) and door `GATE_3`. Align them with the example data
+      or mark them as free-standing. Live orders are runtime data.
+- [x] ~~Decide the shared-vocabulary question above (duplicate vs. extract
+      a shared catalog repo with `Topology-as-Code`/`MasterData-as-Code`)~~ -
+      decided without a shared repo: each catalog has one owner
+      (`process_types` and `storage_technologies` in Topology, load unit
+      types, storage conditions and UOM in MasterData), consumers keep
+      pinned copies or reference the owner (Warehouse-as-Code backlog D1).
 - [ ] Add more order types / channels to `customers/example_customer/`
       (e.g. a `b2b_bulk` type, a `cross_dock` type)
 - [ ] Consider a `sla_class` catalog (delivery-promise/priority
@@ -435,20 +440,23 @@ once the duplication actually causes real drift or pain.
       `customers/example_customer/channels/inbound/` isn't one - it
       reuses the same grouping level for identity purposes only. Rename
       the concept (e.g. to a neutral "Order Source") once a second
-      non-sales use case confirms the pattern, rather than guessing now.
+      non-sales use case confirms the pattern, rather than guessing now
+      (Warehouse-as-Code backlog D3).
 
 ### Open Validation Gaps
 
 `tools/validate.py` checks structural cross-references *within* this
 repo (e.g. `split_rule.condition` → `elements/split_reasons.yaml`,
-`completion_rule.when.status` → `structure/status.yaml`). It does
-**not** check references that cross repo boundaries (`target.id` →
-an actual `Topology-as-Code` door/work_center/activity_area id,
-`material_request.item_id` → an actual `MasterData-as-Code` item,
-`load_unit_request.load_unit_type` → `Topology-as-Code`'s
-`elements/load_unit_types.yaml`) - same category of gap
-`Topology-as-Code` itself started with before cross-file checks were
-added there.
+`completion_rule.when.status` → `structure/status.yaml`). References
+across repo boundaries are checked in `Warehouse-as-Code`: a site
+manifest per facility names the order types and the buildings each
+serves, and `tools/check_sites.py` resolves every target in this repo's
+rules (`target_override`, `order_target_override`, `spawn_target`)
+against those Topology buildings and every `workflow_trigger.trigger`
+against Topology's `process_types`. Not checked anywhere: ids inside
+order instances (`material_request.item_id`,
+`load_unit_request.load_unit_type`) - in `examples/` they are
+illustrative, in live orders they are runtime data.
 
 `tools/validate_examples.py` only checks each order instance and its
 positions against the canonical schemas in isolation. It does **not**
