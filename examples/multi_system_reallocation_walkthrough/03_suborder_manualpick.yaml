@@ -1,6 +1,6 @@
 # The remaining 20 units are in the manually picked zone.
 # SPLIT_TO_MANUAL_PICK_ZONE fires with no target_override - that zone
-# can reach GATE_3 directly, so target inherits the parent's order_target
+# can reach DOOR_02 directly, so target inherits the parent's order_target
 # unchanged. Once "completed", target == order_target: this sub-order is
 # fully and finally fulfilled, no reallocation needed.
 
@@ -9,8 +9,8 @@ order:
   order_type: "b2c_multi_system"
   parent_order_id: "ORD-2001"
   source_split_rule: "SPLIT_TO_MANUAL_PICK_ZONE"
-  target: { type: "door", id: "GATE_3" }
-  order_target: { type: "door", id: "GATE_3" }
+  target: { type: "door", id: "DOOR_02" }
+  order_target: { type: "door", id: "DOOR_02" }
   status: "completed"
 
 positions:
