@@ -1,0 +1,8 @@
+# B2B customers of the 3PL usually want what is there now; an order may
+# ask for a backorder instead. No substitution: the owners' items are
+# not interchangeable. Validates against schemas/shortage-policy.schema.json
+
+shortage_policy:
+  default: "ship_partial"
+  allowed_overrides: ["backorder"]
+  allow_substitution: false

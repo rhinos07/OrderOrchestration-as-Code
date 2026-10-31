@@ -1,0 +1,11 @@
+# This file validates against schemas/completion-rule.schema.json (per entry)
+
+completion_rules:
+  - id: "COMPLETE_AFTER_PICK"
+    when:
+      status: "completed"
+      quantifier: "all_children"
+      source_split_rules: ["SPLIT_MANUAL_PICK"]
+    action:
+      type: "update_parent_status"
+      new_status: "completed"
