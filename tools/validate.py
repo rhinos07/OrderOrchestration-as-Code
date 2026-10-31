@@ -319,6 +319,26 @@ def check_completion_rule_refs(path: Path, status_data: dict | None, split_rules
     return errors
 
 
+def check_shortage_policy(path: Path) -> list[str]:
+    """allowed_overrides must not repeat the default - a value listed
+    there would read as a deviation although it is the standard."""
+    policy = (load_yaml(path) or {}).get("shortage_policy", {}) or {}
+    default = policy.get("default")
+    if default in (policy.get("allowed_overrides") or []):
+        return [f"{path}: shortage_policy.allowed_overrides repeats the default '{default}'"]
+    return []
+
+
+def allowed_shortage_policies(order_type_file: Path) -> set[str] | None:
+    """Policies an order of this order_type may state: the default plus
+    allowed_overrides. None if the order_type declares no shortage_policy."""
+    for imported in collect_imports(order_type_file):
+        if imported.name == "shortage_policy.yaml" and imported.exists():
+            policy = (load_yaml(imported) or {}).get("shortage_policy", {}) or {}
+            return {policy.get("default"), *(policy.get("allowed_overrides") or [])}
+    return None
+
+
 def validate_order_type_file(order_type_file: Path, element_ids: dict[str, set[str]] = {}) -> list[str]:
     """Validates a single order-type-level order_type.yaml and everything it imports."""
     if not order_type_file.exists():
@@ -346,6 +366,9 @@ def validate_order_type_file(order_type_file: Path, element_ids: dict[str, set[s
             all_errors += validate_list_items(imported, "workflow-trigger.schema.json", "workflow_triggers")
         elif name == "completion_rules.yaml":
             all_errors += validate_list_items(imported, "completion-rule.schema.json", "completion_rules")
+        elif name == "shortage_policy.yaml":
+            all_errors += validate_file(imported, "shortage-policy.schema.json")
+            all_errors += check_shortage_policy(imported)
         else:
             data = load_yaml(imported)
             if data is None:

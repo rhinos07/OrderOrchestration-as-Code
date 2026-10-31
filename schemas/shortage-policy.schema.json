@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://order-orchestration-as-code.internal/schemas/shortage-policy.schema.json",
+  "title": "Shortage Policy",
+  "description": "What happens to an order line whose requested quantity cannot be covered because no stock is available. Distinct from completion_rule action 'reallocate_remainder', which re-routes a remainder to another system that still has stock: the shortage policy applies only when the remainder cannot be covered anywhere. Declared once per order_type as the default; a single order may override it via order header 'shortage_policy', but only with a value listed in allowed_overrides. NORMATIVE: an engine MUST reject an order whose shortage_policy is neither the default nor in allowed_overrides.",
+  "type": "object",
+  "required": ["shortage_policy"],
+  "properties": {
+    "shortage_policy": {
+      "type": "object",
+      "required": ["default"],
+      "properties": {
+        "default": {
+          "$ref": "#/definitions/policy",
+          "description": "Policy used when the order does not state one."
+        },
+        "allowed_overrides": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/policy" },
+          "uniqueItems": true,
+          "description": "Further policies a single order may choose. Omit or leave empty to forbid overrides. Must not repeat the default."
+        },
+        "allow_substitution": {
+          "type": "boolean",
+          "description": "If true, before applying the policy the engine may fill the shortage with the item's substitute (MasterData-as-Code item lifecycle.substitute_item_id). Default false."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "policy": {
+      "type": "string",
+      "enum": ["backorder", "ship_partial", "hold", "cancel_line"],
+      "description": "backorder: ship what is available, keep the remainder open until stock arrives. ship_partial: ship what is available, cancel the remainder. hold: ship nothing until the whole order can be covered. cancel_line: cancel every short line completely, ship the other lines."
+    }
+  }
+}
