@@ -102,6 +102,7 @@ order-orchestration-definitions/
 │   ├── validate.py           # Validation script (schema + cross-file consistency checks)
 │   └── validate_examples.py  # Validates examples/ instance files against
 │                              #   order-header.schema.json / order-position.schema.json
+├── tests/                    # Unit tests for the validation rules (unittest)
 ├── docs/
 │   └── entity-glossary.md
 └── .github/workflows/validate.yaml   # CI pipeline (dynamic per-customer matrix)
@@ -143,7 +144,13 @@ python tools/validate.py customers/example_customer/company.yaml
 # Validates the illustrative order-instance examples (header + positions)
 # against order-header.schema.json / order-position.schema.json
 python tools/validate_examples.py examples/order_walkthrough
+
+# Unit tests for the validation rules
+python -m unittest discover -s tests
 ```
+
+CI runs all three: the customer cascade, every directory under
+`examples/`, and the unit tests.
 
 ## Examples
 
