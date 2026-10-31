@@ -1,0 +1,8 @@
+# This file validates against schemas/channel.schema.json
+
+channel:
+  id: "b2b"
+  name: "B2B Customer Orders"
+
+  order_types:
+    - "order_types/b2b_outbound/order_type.yaml"

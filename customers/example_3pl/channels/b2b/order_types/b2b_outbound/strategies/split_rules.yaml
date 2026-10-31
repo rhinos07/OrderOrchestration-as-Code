@@ -1,0 +1,10 @@
+# The hall has one storage technology (manual warehouse), so every order
+# becomes one manual pick sub-order towards its outbound door.
+# This file validates against schemas/split-rule.schema.json (per entry)
+
+split_rules:
+  - id: "SPLIT_MANUAL_PICK"
+    condition: "storage_technology_split"
+    split_by: "storage_technology"
+    when:
+      dimension_value: "manual_warehouse"

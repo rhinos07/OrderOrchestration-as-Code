@@ -1,0 +1,7 @@
+# This file validates against schemas/fields.schema.json
+
+fields:
+  allowed_position_kinds:
+    - "material_request"
+  allowed_target_types:
+    - "door"
