@@ -315,10 +315,9 @@ string-id convention this repo already uses for `target.id` and
 `material_request.item_id`. `b2c_multi_system`'s `SPLIT_TO_MANUAL_PICK_ZONE`
 used to invent its own `"manual_pick"` instead of reusing
 `manual_warehouse`; `WMS-POC` reading the real technology from
-`Topology-as-Code` is what caught it. This reference is not checked
-anywhere yet - neither by `tools/validate.py` here nor by
-`Warehouse-as-Code`'s per-site check, which does cover this repo's targets
-and workflow triggers (see "Open Validation Gaps" below).
+`Topology-as-Code` is what caught it. `tools/validate.py` here cannot check
+this reference; `Warehouse-as-Code`'s per-site check does (see "Open
+Validation Gaps" below).
 
 ## Split Dimensions
 
@@ -356,8 +355,8 @@ ids directly:
   `elements/process_types.yaml` (checked per site by `Warehouse-as-Code`).
 - `split_rule.when.dimension_value` when `split_by` is
   `storage_technology` → `Topology-as-Code`'s
-  `elements/storage_technologies.yaml` (see "Split Conditions" above; not
-  checked yet).
+  `elements/storage_technologies.yaml` (see "Split Conditions" above;
+  checked per site by `Warehouse-as-Code`).
 - `load_unit_request.load_unit_type` → `MasterData-as-Code`'s
   `elements/load_unit_types.yaml` (owned there; `Topology-as-Code` keeps
   a pinned copy).
@@ -463,12 +462,13 @@ manifest per facility names the order types and the buildings each
 serves, and `tools/check_sites.py` resolves every target in this repo's
 rules (`target_override`, `order_target_override`, `spawn_target`)
 against those Topology buildings and every `workflow_trigger.trigger`
-against Topology's `process_types`. For the illustrative order instances
-in `examples/` (listed in the site manifest), it also resolves their
-targets and `material_request.item_id`s against Topology and
-`MasterData-as-Code`. Not checked anywhere: `load_unit_request.load_unit_type`
-in examples, and `split_rule.when.dimension_value`. Ids in live orders are
-runtime data.
+against Topology's `process_types`, and every `split_rule.when.dimension_value`
+of a `split_by: storage_technology` rule against Topology's
+`storage_technologies`. For the illustrative order instances in
+`examples/` (listed in the site manifest), it also resolves their targets,
+`material_request.item_id`s and `load_unit_request.load_unit_type`s
+against Topology and `MasterData-as-Code`. Ids in live orders are runtime
+data.
 
 `tools/validate_examples.py` only checks each order instance and its
 positions against the canonical schemas in isolation. It does **not**
