@@ -75,7 +75,9 @@ order-orchestration-definitions/
 │   ├── split-rule.schema.json
 │   ├── workflow-trigger.schema.json
 │   ├── completion-rule.schema.json
-│   └── split-reason.schema.json
+│   ├── split-reason.schema.json
+│   ├── split-dimension.schema.json
+│   └── shortage-policy.schema.json   # Optional per-order-type shortage handling
 ├── elements/
 │   ├── split_reasons.yaml            # Catalog of reasons an order can be split
 │   └── split_dimensions.yaml         # Catalog of dimensions an order can be split along
@@ -94,10 +96,13 @@ order-orchestration-definitions/
 │                       └── strategies/
 │                           ├── split_rules.yaml       # When/how an order splits
 │                           ├── workflow_triggers.yaml # Which workflow each split starts
-│                           └── completion_rules.yaml  # What happens when sub-order(s) finish
+│                           ├── completion_rules.yaml  # What happens when sub-order(s) finish
+│                           └── shortage_policy.yaml    # Optional: default/allowed shortage handling
 ├── examples/
-│   └── order_walkthrough/    # Illustrative order instances (NOT structural config,
-│                             #   NOT real runtime data) - see its own README
+│   ├── order_walkthrough/                      # Illustrative order instances (NOT structural
+│   │                                            #   config, NOT real runtime data) - see its own README
+│   └── multi_system_reallocation_walkthrough/  # Second scenario: reactive reallocate_remainder
+│                                                #   via target_gap - see its own README
 ├── tools/
 │   ├── validate.py           # Validation script (schema + cross-file consistency checks)
 │   └── validate_examples.py  # Validates examples/ instance files against
