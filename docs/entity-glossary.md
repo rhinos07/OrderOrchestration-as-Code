@@ -18,7 +18,7 @@ cascades validation downward automatically.
 | Term | Meaning |
 |---|---|
 | `order` (header) | One order or sub-order instance. Carries identity (`order_id`, `order_type`), lineage (`parent_order_id`, `source_split_rule`), a `target` and `order_target`, and a `status`. Actual instances are runtime data (in the WMS/OMS) - this repo only defines the allowed shape, in `schemas/order-header.schema.json`. |
-| `target` | The **movement target**: the destination *this specific* order/sub-order's executing system must physically reach - the next reachable hop, not necessarily the final business destination. A reference to a `door`, `work_center`, or `activity_area` defined in `Warehouse-as-Code`. A sub-order's target can differ from its parent's and from its own `order_target` - see "Splitting and completion" and "Order Target vs. Movement Target" below. |
+| `target` | The **movement target**: the destination *this specific* order/sub-order's executing system must physically reach - the next reachable hop, not necessarily the final business destination. A reference to a `door`, `work_center`, or `activity_area` defined in `Topology-as-Code`. A sub-order's target can differ from its parent's and from its own `order_target` - see "Splitting and completion" and "Order Target vs. Movement Target" below. |
 | `order_target` | The **order target**: the immutable business destination for the order line, set once on the top-level order and inherited unchanged by every descendant sub-order no matter how many times it is split or re-split. Same shape as `target`. An order/sub-order is only truly fulfilled once its confirmed quantity is reached **and** `target == order_target`. |
 | `position` (line item) | A single line item on an order header (`schemas/order-position.schema.json`). Requests exactly one of: `load_unit_request` (a specific load unit), `material_request` (item + quantity), or `suborder_output_request` (the output of an already-completed sub-order - used on consolidation orders). |
 | `status` | The state machine an order type's orders/sub-orders move through (`structure/status.yaml`). Every order/sub-order has its own, independent position in this state machine. |
@@ -29,8 +29,9 @@ cascades validation downward automatically.
 | Term | Meaning |
 |---|---|
 | `split_rule` | Defines when/how an order is decomposed into sub-orders (`strategies/split_rules.yaml`). `condition` references `elements/split_reasons.yaml` and names the *reason*, which sibling rules share. `when` is what distinguishes and gates an individual rule: `when.status` restricts it to orders that have reached a given status (omit for splits decidable at intake), and `when.dimension_value` declares which value of `split_by` this rule covers - `tools/validate.py` requires siblings sharing a `split_by` to declare distinct values, since without that a set of rules is not dispatchable. Deliberately a structured object rather than an expression language: which storage technology holds an item's stock is live inventory state this repo family does not model, so the runtime resolves a position's actual value and the rule only declares which value it claims. `target_override` sets a sub-order's **movement target** (`target`) if it differs from the parent's. `order_target_override` additionally sets the sub-order's **order target** too - by default `order_target` always inherits unchanged regardless of `target_override`; use `order_target_override` only when this split's destination genuinely becomes the sub-order's new final business destination (e.g. inbound putaway), not for outbound-style splits where `order_target` is the customer's fixed destination. Omit both to inherit the parent's `target`/`order_target` unchanged. |
-| `workflow_trigger` | Maps a `split_rule` outcome to the downstream process/workflow that should start for the resulting sub-order (`strategies/workflow_triggers.yaml`). Where that trigger is something a warehouse acts on, it references the same `process_type` id `Warehouse-as-Code`'s `movement_rule.trigger` uses. |
+| `workflow_trigger` | Maps a `split_rule` outcome to the downstream process/workflow that should start for the resulting sub-order (`strategies/workflow_triggers.yaml`). Where that trigger is something a warehouse acts on, it references the same `process_type` id `Topology-as-Code`'s `movement_rule.trigger` uses. |
 | `completion_rule` | Defines what happens once sub-order(s) reach a given status (`strategies/completion_rules.yaml`). `when` names the watched status, a quantifier (`all_children` / `any_child` / `n_of_m`), optionally `target_gap` (fires only for a child whose `target != order_target` at that status - "confirmed but not actually there yet"), and optionally `source_split_rules` (restricts which children are considered to those created by the named `split_rule`s - without it, two `completion_rule`s on the same order_type can cross-fire on each other's children whenever their `when` conditions happen to overlap, e.g. any `target_override` makes `target != order_target`). `action` is `update_parent_status`, `spawn_order` (typically a consolidation order - see below; `supersedes_parent: true` also moves the parent to the reserved terminal `superseded` status, since a spawning parent isn't itself fulfilled), or `reallocate_remainder` (reactively re-splits the outstanding remainder into a new sub-order - see "Order Target vs. Movement Target" below). A rule fires at most once per parent and does not re-arm if its watched set of children changes later (e.g. via a `reallocate_remainder` sibling sharing an already-counted `source_split_rule`). |
+| `shortage_policy` | What happens to a line that cannot be covered because no stock is available anywhere, after any `reallocate_remainder` (`strategies/shortage_policy.yaml`). Declared once per order_type as `default`; a single order header may override it, but only with a value from `allowed_overrides`. One of `backorder`, `ship_partial`, `hold`, `cancel_line`. Optional `allow_substitution` lets the engine try the item's substitute (`MasterData-as-Code` item lifecycle `substitute_item_id`) before applying the policy. Distinct from `reallocate_remainder`, which re-routes a remainder to another system that still has stock - `shortage_policy` only applies once no system does. |
 
 ## Splitting and Completion (Key Architectural Principle)
 
@@ -45,7 +46,7 @@ its parent. Example: an order is split between an AutoStore cell and a
 manual warehouse area within the same facility (`split_by:
 "storage_technology"`, `condition: "storage_technology_split"`). The
 AutoStore sub-order's target is overridden to that cell's own `EXIT`
-work_center (see `Warehouse-as-Code`'s `customers/autostore_customer` -
+work_center (see `Topology-as-Code`'s `customers/autostore_customer` -
 that building deliberately has no door/lane infrastructure, only
 ENTRY/EXIT work_centers as its system boundary) - it can never reach the
 parent order's actual outbound door on its own. The manual warehouse
@@ -144,17 +145,18 @@ for this scenario worked out as concrete order instances.
 | Term | Meaning |
 |---|---|
 | `split_reason` | Catalog of reasons an order can be split (`elements/split_reasons.yaml`). Referenced by `split_rule.condition`. |
+| `split_dimension` | Catalog of dimensions an order can be split along (`elements/split_dimensions.yaml`), e.g. `storage_technology`, `fulfillment_location`, `carrier`, `promise_date`, `item_category`. Referenced by `split_rule.split_by`; `tools/validate.py` checks the reference and that sibling rules sharing a `split_by` declare distinct `when.dimension_value`s. |
 
 ## Key Architectural Principles
 
 1. **Structure vs. runtime state**: These YAML files describe only the
    allowed shape and rules. Actual live orders, their current status,
    and real quantities/dates live in the OMS/WMS runtime database (KCC),
-   not here - analogous to `Warehouse-as-Code`'s own structure-vs-runtime
+   not here - analogous to `Topology-as-Code`'s own structure-vs-runtime
    principle.
 
 2. **`target` is decided once, not re-resolved dynamically**: A
-   `target` references a specific `Warehouse-as-Code` door/work_center/
+   `target` references a specific `Topology-as-Code` door/work_center/
    activity_area id, chosen at order/sub-order creation time by the
    runtime. This repo does not model *which* facility/location gets
    chosen (that's an allocation decision) - only the shape of the
@@ -167,5 +169,5 @@ for this scenario worked out as concrete order instances.
 3. **Split ("may be decomposed") vs. trigger ("what starts") vs.
    completion ("what happens when done")**: three separate entities
    (`split_rule`, `workflow_trigger`, `completion_rule`), each with its
-   own lifecycle - mirrors `Warehouse-as-Code`'s deliberate separation of
+   own lifecycle - mirrors `Topology-as-Code`'s deliberate separation of
    `lane` ("can"), `movement_rule` ("may"), and `replenishment_strategy`.
