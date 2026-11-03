@@ -18,14 +18,15 @@ pattern (JSON Schema validation, `structure/` vs. `strategies/`,
 | [`Topology-as-Code`](https://github.com/rhinos07/Topology-as-Code) | Physical warehouse structure, material-flow communication, movement/replenishment rules |
 | **OrderOrchestration-as-Code** (this repo) | How incoming orders are split, and which downstream workflow each split triggers |
 | [`MasterData-as-Code`](https://github.com/rhinos07/MasterData-as-Code) | Item/article master data, packaging/UOM hierarchy, sourcing & lifecycle rules |
-| [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration: search-zone sequence, selection strategy, constraints |
+| [`Allocation-as-Code`](https://github.com/rhinos07/Allocation-as-Code) | Stock-search configuration (search-zone sequence, selection strategy, constraints) and its inbound counterpart, putaway placement (putaway-zone sequence, placement strategy, constraints) |
 
 This repo's `workflow_trigger` values that hand off to the warehouse are
 meant to reference `Topology-as-Code`'s `elements/process_types.yaml`
 vocabulary (see "Shared Vocabulary" below), and `order_position`'s
 `material_request.item_id` references item ids owned by
-`MasterData-as-Code`; `load_unit_request.load_unit_type` currently
-references `Topology-as-Code`'s `elements/load_unit_types.yaml`. A
+`MasterData-as-Code`; `load_unit_request.load_unit_type` references the
+load unit catalog owned by `MasterData-as-Code` (`Topology-as-Code` keeps
+a pinned copy). A
 `material_request.item_id`/`quantity` is also the same demand shape
 `Allocation-as-Code`'s `search_rule.applies_to.item_id` scopes a search
 strategy to - this repo doesn't itself trigger or consult a stock
@@ -314,9 +315,10 @@ string-id convention this repo already uses for `target.id` and
 `material_request.item_id`. `b2c_multi_system`'s `SPLIT_TO_MANUAL_PICK_ZONE`
 used to invent its own `"manual_pick"` instead of reusing
 `manual_warehouse`; `WMS-POC` reading the real technology from
-`Topology-as-Code` is what caught it. `tools/validate.py` does not check
-this reference - no repo's does, for any cross-repo reference (see "Open
-Validation Gaps" below).
+`Topology-as-Code` is what caught it. This reference is not checked
+anywhere yet - neither by `tools/validate.py` here nor by
+`Warehouse-as-Code`'s per-site check, which does cover this repo's targets
+and workflow triggers (see "Open Validation Gaps" below).
 
 ## Split Dimensions
 
@@ -346,17 +348,19 @@ Structural enums stay closed: `completion_rule`'s `quantifier` and
 `workflow_trigger` values that hand off to the warehouse should reuse the
 *same* `process_type` catalog that `Topology-as-Code`'s
 `movement_rule.trigger` references, rather than inventing a parallel set
-of names. Right now that catalog (`elements/process_types.yaml`) lives
-inside `Topology-as-Code` and would need to be duplicated here or
-extracted into a small shared repo both projects reference. The same
-applies to `order-position.schema.json`'s `load_unit_request.load_unit_type`
-(currently referencing `Topology-as-Code`'s `elements/load_unit_types.yaml`,
-itself flagged as a candidate to move to `MasterData-as-Code`), and to
-`split_rule.when.dimension_value` when `split_by` is `storage_technology`
-(references `Topology-as-Code`'s `elements/storage_technologies.yaml` -
-see "Split Conditions" above). **Don't solve this prematurely** - start
-with a duplicated/local copy here, and only extract a shared catalog repo
-once the duplication actually causes real drift or pain.
+of names. **Decided** (`Warehouse-as-Code` backlog D1): no shared-catalog
+repo - each catalog has one owner and this repo references the owner's
+ids directly:
+
+- `workflow_trigger.trigger` → `Topology-as-Code`'s
+  `elements/process_types.yaml` (checked per site by `Warehouse-as-Code`).
+- `split_rule.when.dimension_value` when `split_by` is
+  `storage_technology` → `Topology-as-Code`'s
+  `elements/storage_technologies.yaml` (see "Split Conditions" above; not
+  checked yet).
+- `load_unit_request.load_unit_type` → `MasterData-as-Code`'s
+  `elements/load_unit_types.yaml` (owned there; `Topology-as-Code` keeps
+  a pinned copy).
 
 ## Next Steps for This Repo
 
@@ -459,10 +463,12 @@ manifest per facility names the order types and the buildings each
 serves, and `tools/check_sites.py` resolves every target in this repo's
 rules (`target_override`, `order_target_override`, `spawn_target`)
 against those Topology buildings and every `workflow_trigger.trigger`
-against Topology's `process_types`. Not checked anywhere: ids inside
-order instances (`material_request.item_id`,
-`load_unit_request.load_unit_type`) - in `examples/` they are
-illustrative, in live orders they are runtime data.
+against Topology's `process_types`. For the illustrative order instances
+in `examples/` (listed in the site manifest), it also resolves their
+targets and `material_request.item_id`s against Topology and
+`MasterData-as-Code`. Not checked anywhere: `load_unit_request.load_unit_type`
+in examples, and `split_rule.when.dimension_value`. Ids in live orders are
+runtime data.
 
 `tools/validate_examples.py` only checks each order instance and its
 positions against the canonical schemas in isolation. It does **not**
